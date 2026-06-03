@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: interview-os-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: interview_os
+      POSTGRES_PASSWORD: interview_os
+      POSTGRES_DB: interview_os
+    ports:
+      - "5432:5432"
+    volumes:
+      - interview_os_pgdata:/var/lib/postgresql/data
+
+volumes:
+  interview_os_pgdata:

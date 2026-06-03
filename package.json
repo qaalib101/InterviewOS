@@ -1,0 +1,22 @@
+{
+  "name": "interview-os",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:web": "pnpm --filter @interview-os/web dev",
+    "dev:api": "pnpm --filter @interview-os/api dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "db:generate": "pnpm --filter @interview-os/api prisma:generate",
+    "db:migrate": "pnpm --filter @interview-os/api prisma:migrate",
+    "db:seed": "pnpm --filter @interview-os/api prisma:seed"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
