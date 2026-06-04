@@ -7,10 +7,104 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum ApplicationStage {
+  SAVED
+  APPLIED
+  RECRUITER_SCREEN
+  TECH_SCREEN
+  ONSITE
+  OFFER
+  REJECTED
+  WITHDRAWN
+  ARCHIVED
+}
+
+enum RemoteMode {
+  REMOTE
+  HYBRID
+  ONSITE
+  UNKNOWN
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String        @id @default(uuid())
+  email        String        @unique
+  name         String
+  companies    Company[]
+  applications Application[]
+  contacts     Contact[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Company {
+  id           String        @id @default(uuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  website      String?
+  industry     String?
+  location     String?
+  notes        String?
+  applications Application[]
+  contacts     Contact[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([userId])
+}
+
+model Application {
+  id              String           @id @default(uuid())
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId       String
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  roleTitle       String
+  jobUrl          String?
+  source          String?
+  stage           ApplicationStage @default(SAVED)
+  compensationMin Int?
+  compensationMax Int?
+  remoteMode      RemoteMode       @default(UNKNOWN)
+  priority        Priority         @default(MEDIUM)
+  confidence      Int?
+  concerns        String?
+  nextAction      String?
+  nextActionAt    DateTime?
+  notes           String?
+  contacts        Contact[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([userId, stage])
+  @@index([companyId])
+}
+
+model Contact {
+  id            String       @id @default(uuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId     String?
+  company       Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  applicationId String?
+  application   Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  name          String
+  role          String?
+  email         String?
+  phone         String?
+  linkedinUrl   String?
+  notes         String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([companyId])
+  @@index([applicationId])
 }

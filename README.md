@@ -2,7 +2,7 @@
 
 Interview OS is a personal job search and interview tracking application built incrementally as a portfolio-quality project.
 
-Current approved milestone: Milestone 1, Project Foundation.
+Current completed milestone: Milestone 2, Core CRM.
 
 ## Stack
 
@@ -29,6 +29,8 @@ pnpm db:migrate
 pnpm db:seed
 ```
 
+Local commands load the repo-root `.env` with override enabled. That means project values such as `DATABASE_URL` win over any globally exported shell variables for this repo's API, Prisma, and Vite commands.
+
 ## Development
 
 ```bash
@@ -48,8 +50,47 @@ pnpm build
 pnpm lint
 ```
 
-## Milestone 1 Scope
+## Current Scope
 
-Milestone 1 includes only foundation work: monorepo structure, app scaffolds, Docker Compose, Postgres, Prisma setup, shared package, seed data strategy, and README setup instructions.
+Implemented:
 
-Business features begin in Milestone 2 after approval.
+- Monorepo foundation.
+- Companies.
+- Applications.
+- Existing process import through initial application stage selection.
+- Contacts linked to companies and optionally applications.
+
+Not implemented yet:
+
+- Interviews.
+- Interview notes.
+- Follow-ups.
+- Dashboard.
+- STAR stories.
+- Question bank.
+- Mock AI analysis.
+
+## API Routes
+
+```text
+GET    /health
+GET    /api/v1/meta
+
+GET    /api/v1/companies
+POST   /api/v1/companies
+GET    /api/v1/companies/:id
+PATCH  /api/v1/companies/:id
+DELETE /api/v1/companies/:id
+
+GET    /api/v1/applications
+POST   /api/v1/applications
+GET    /api/v1/applications/:id
+PATCH  /api/v1/applications/:id
+DELETE /api/v1/applications/:id
+
+GET    /api/v1/contacts
+POST   /api/v1/contacts
+GET    /api/v1/contacts/:id
+PATCH  /api/v1/contacts/:id
+DELETE /api/v1/contacts/:id
+```

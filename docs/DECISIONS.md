@@ -23,3 +23,15 @@ Seed a single local user for v1 development. Authentication is intentionally def
 ## 2026-06-03: Deferred AI
 
 Mock AI analysis is deferred until Milestone 7. No AI routes, providers, or schemas are included in Milestone 1.
+
+## 2026-06-03: Core CRM First
+
+Milestone 2 adds only companies, applications, and contacts. Existing process import is modeled as normal application creation with any valid initial stage, which keeps the workflow simple without adding a separate import entity.
+
+## 2026-06-03: Simple CRM API
+
+Use explicit Express route files for the three CRM resources. A generic CRUD abstraction is deferred until repeated behavior becomes painful.
+
+## 2026-06-03: CRM UI Shape
+
+Use specific pages for companies, applications, and contacts. Avoid a generic table/form builder for now so the portfolio code stays easy to read.

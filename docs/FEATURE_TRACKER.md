@@ -14,10 +14,10 @@
 
 ## Milestone 2: Core CRM
 
-- [ ] Companies
-- [ ] Applications
-- [ ] Existing process import
-- [ ] Contacts
+- [x] Companies
+- [x] Applications
+- [x] Existing process import
+- [x] Contacts
 
 ## Milestone 3: Interviews
 
