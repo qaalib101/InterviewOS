@@ -21,9 +21,9 @@
 
 ## Milestone 3: Interviews
 
-- [ ] Interview rounds
-- [ ] Interview notes
-- [ ] Interview analysis schema
+- [x] Interview rounds
+- [x] Interview notes
+- [x] Interview analysis schema
 
 ## Milestone 4: Follow-Ups
 

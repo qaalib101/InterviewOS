@@ -35,3 +35,11 @@ Use explicit Express route files for the three CRM resources. A generic CRUD abs
 ## 2026-06-03: CRM UI Shape
 
 Use specific pages for companies, applications, and contacts. Avoid a generic table/form builder for now so the portfolio code stays easy to read.
+
+## 2026-06-06: Interview Notes Before AI
+
+Milestone 3 stores interview rounds, raw notes, prep notes, and an optional structured analysis JSON shape. No AI route or provider is added yet; mock analysis remains deferred until Milestone 7.
+
+## 2026-06-06: Interview UI Scope
+
+Use a single `/interviews` page for interview rounds and notes. Avoid calendar views and dashboard summaries until those milestones are explicitly approved.

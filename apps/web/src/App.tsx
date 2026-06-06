@@ -4,6 +4,7 @@ import { HomePage } from "./pages/HomePage";
 import { CompaniesPage } from "./pages/CompaniesPage";
 import { ApplicationsPage } from "./pages/ApplicationsPage";
 import { ContactsPage } from "./pages/ContactsPage";
+import { InterviewsPage } from "./pages/InterviewsPage";
 
 const router = createBrowserRouter([
   {
@@ -13,7 +14,8 @@ const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: "companies", element: <CompaniesPage /> },
       { path: "applications", element: <ApplicationsPage /> },
-      { path: "contacts", element: <ContactsPage /> }
+      { path: "contacts", element: <ContactsPage /> },
+      { path: "interviews", element: <InterviewsPage /> }
     ]
   }
 ]);

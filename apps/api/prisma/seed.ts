@@ -12,6 +12,8 @@ async function main() {
     }
   });
 
+  await prisma.interviewNote.deleteMany({ where: { userId: user.id } });
+  await prisma.interview.deleteMany({ where: { userId: user.id } });
   await prisma.contact.deleteMany({ where: { userId: user.id } });
   await prisma.application.deleteMany({ where: { userId: user.id } });
   await prisma.company.deleteMany({ where: { userId: user.id } });
@@ -93,6 +95,41 @@ async function main() {
         role: "Engineering Manager",
         email: "morgan@example.com",
         notes: "Potential hiring manager for platform team."
+      }
+    ]
+  });
+
+  const interview = await prisma.interview.create({
+    data: {
+      userId: user.id,
+      applicationId: activeApplication.id,
+      roundName: "Architecture Screen",
+      roundNumber: 2,
+      type: "SYSTEM_DESIGN",
+      format: "VIDEO",
+      scheduledAt: new Date(Date.now() + 1000 * 60 * 60 * 48),
+      durationMinutes: 60,
+      interviewers: "Engineering Manager, Staff Engineer",
+      expectedTopics: "API design, Postgres data modeling, scaling read-heavy dashboards.",
+      prepNotes: "Use Interview OS as the system design anchor.",
+      rawPostInterviewNotes: "",
+      outcome: "SCHEDULED"
+    }
+  });
+
+  await prisma.interviewNote.createMany({
+    data: [
+      {
+        userId: user.id,
+        interviewId: interview.id,
+        type: "PREP",
+        body: "Prepare concise tradeoff language for caching, database indexes, and queue boundaries."
+      },
+      {
+        userId: user.id,
+        interviewId: interview.id,
+        type: "RAW_POST_INTERVIEW",
+        body: "Placeholder for notes pasted after the interview."
       }
     ]
   });

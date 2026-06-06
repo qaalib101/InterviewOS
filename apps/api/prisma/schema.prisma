@@ -32,6 +32,41 @@ enum Priority {
   HIGH
 }
 
+enum InterviewType {
+  BEHAVIORAL
+  TECHNICAL
+  SYSTEM_DESIGN
+  HIRING_MANAGER
+  RECRUITER
+  PANEL
+  OTHER
+}
+
+enum InterviewFormat {
+  PHONE
+  VIDEO
+  ONSITE
+  TAKE_HOME
+  OTHER
+}
+
+enum InterviewOutcome {
+  SCHEDULED
+  COMPLETED
+  PASSED
+  FAILED
+  CANCELLED
+  UNKNOWN
+}
+
+enum InterviewNoteType {
+  PREP
+  RAW_POST_INTERVIEW
+  STRUCTURED_ANALYSIS
+  FEEDBACK
+  FOLLOW_UP_DRAFT
+}
+
 model User {
   id           String        @id @default(uuid())
   email        String        @unique
@@ -39,6 +74,8 @@ model User {
   companies    Company[]
   applications Application[]
   contacts     Contact[]
+  interviews   Interview[]
+  interviewNotes InterviewNote[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }
@@ -80,11 +117,53 @@ model Application {
   nextActionAt    DateTime?
   notes           String?
   contacts        Contact[]
+  interviews      Interview[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
   @@index([userId, stage])
   @@index([companyId])
+}
+
+model Interview {
+  id                    String           @id @default(uuid())
+  userId                String
+  user                  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applicationId         String
+  application           Application      @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  roundName             String
+  roundNumber           Int
+  type                  InterviewType
+  format                InterviewFormat
+  scheduledAt           DateTime
+  durationMinutes       Int
+  interviewers          String?
+  expectedTopics        String?
+  prepNotes             String?
+  rawPostInterviewNotes String?
+  outcome               InterviewOutcome @default(SCHEDULED)
+  notes                 InterviewNote[]
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  @@index([userId, scheduledAt])
+  @@index([applicationId])
+}
+
+model InterviewNote {
+  id          String            @id @default(uuid())
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interviewId String
+  interview   Interview         @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  type        InterviewNoteType
+  body        String
+  analysis    Json?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([interviewId])
 }
 
 model Contact {

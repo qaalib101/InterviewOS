@@ -2,7 +2,7 @@
 
 Interview OS is a personal job search and interview tracking application built incrementally as a portfolio-quality project.
 
-Current completed milestone: Milestone 2, Core CRM.
+Current completed milestone: Milestone 3, Interviews.
 
 ## Stack
 
@@ -59,11 +59,12 @@ Implemented:
 - Applications.
 - Existing process import through initial application stage selection.
 - Contacts linked to companies and optionally applications.
+- Interview rounds.
+- Interview notes.
+- Interview analysis storage schema.
 
 Not implemented yet:
 
-- Interviews.
-- Interview notes.
 - Follow-ups.
 - Dashboard.
 - STAR stories.
@@ -93,4 +94,15 @@ POST   /api/v1/contacts
 GET    /api/v1/contacts/:id
 PATCH  /api/v1/contacts/:id
 DELETE /api/v1/contacts/:id
+
+GET    /api/v1/interviews
+POST   /api/v1/interviews
+GET    /api/v1/interviews/:id
+PATCH  /api/v1/interviews/:id
+DELETE /api/v1/interviews/:id
+
+GET    /api/v1/interviews/:id/notes
+POST   /api/v1/interviews/:id/notes
+PATCH  /api/v1/interview-notes/:noteId
+DELETE /api/v1/interview-notes/:noteId
 ```
