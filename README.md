@@ -2,7 +2,7 @@
 
 Interview OS is a personal job search and interview tracking application built incrementally as a portfolio-quality project.
 
-Current completed milestone: Milestone 3, Interviews.
+Current completed milestone: Milestone 3.5, Usability Maintenance.
 
 ## Stack
 
@@ -30,6 +30,8 @@ pnpm db:seed
 ```
 
 Local commands load the repo-root `.env` with override enabled. That means project values such as `DATABASE_URL` win over any globally exported shell variables for this repo's API, Prisma, and Vite commands.
+
+`pnpm db:seed` is a development reset seed. It deletes and recreates the local CRM and interview records for the seeded local user. Use it to reset demo data, not after you have entered personal production data you want to keep.
 
 ## Development
 
@@ -62,6 +64,7 @@ Implemented:
 - Interview rounds.
 - Interview notes.
 - Interview analysis storage schema.
+- Edit/delete UI for current CRM and interview data.
 
 Not implemented yet:
 

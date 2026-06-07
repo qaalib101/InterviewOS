@@ -85,6 +85,29 @@ describe("interview routes", () => {
     expect(prisma.interviewNote.create).toHaveBeenCalled();
   });
 
+  it("updates an interview note", async () => {
+    vi.mocked(prisma.interviewNote.findFirst).mockResolvedValue({ id: "note-1" } as any);
+    vi.mocked(prisma.interviewNote.update).mockResolvedValue({ id: "note-1", body: "Updated prep notes." } as any);
+
+    const response = await request(createApp()).patch("/api/v1/interview-notes/note-1").send({
+      type: "PREP",
+      body: "Updated prep notes."
+    });
+
+    expect(response.status).toBe(200);
+    expect(prisma.interviewNote.update).toHaveBeenCalled();
+  });
+
+  it("deletes an interview note", async () => {
+    vi.mocked(prisma.interviewNote.findFirst).mockResolvedValue({ id: "note-1" } as any);
+    vi.mocked(prisma.interviewNote.delete).mockResolvedValue({ id: "note-1" } as any);
+
+    const response = await request(createApp()).delete("/api/v1/interview-notes/note-1");
+
+    expect(response.status).toBe(204);
+    expect(prisma.interviewNote.delete).toHaveBeenCalledWith({ where: { id: "note-1" } });
+  });
+
   it("rejects note creation when interview does not exist", async () => {
     vi.mocked(prisma.interview.findFirst).mockResolvedValue(null);
 

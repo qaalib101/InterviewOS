@@ -25,6 +25,15 @@
 - [x] Interview notes
 - [x] Interview analysis schema
 
+## Milestone 3.5: Usability Maintenance
+
+- [x] Edit/delete UI for companies
+- [x] Edit/delete UI for applications
+- [x] Edit/delete UI for contacts
+- [x] Edit/delete UI for interviews
+- [x] Edit/delete UI for interview notes
+- [x] Safer seed documentation
+
 ## Milestone 4: Follow-Ups
 
 - [ ] Follow-up tracking

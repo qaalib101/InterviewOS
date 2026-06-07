@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useState } from "react";
-import { apiGet, apiPost } from "../lib/api";
+import { apiDelete, apiGet, apiPatch, apiPost } from "../lib/api";
+import { ConfirmDelete } from "../ui/ConfirmDelete";
+import { FormActions } from "../ui/FormActions";
 import { Field, PageHeader, Panel } from "../ui/Primitives";
 
 type Company = { id: string; name: string };
@@ -10,6 +12,10 @@ type Contact = {
   name: string;
   role?: string | null;
   email?: string | null;
+  phone?: string | null;
+  linkedinUrl?: string | null;
+  companyId?: string | null;
+  applicationId?: string | null;
   company?: Company | null;
   application?: Application | null;
   notes?: string | null;
@@ -29,18 +35,41 @@ const initialForm = {
 export function ContactsPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState(initialForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const { data: companies = [] } = useQuery({ queryKey: ["companies"], queryFn: () => apiGet<Company[]>("/api/v1/companies") });
   const { data: applications = [] } = useQuery({ queryKey: ["applications"], queryFn: () => apiGet<Application[]>("/api/v1/applications") });
   const { data: contacts = [] } = useQuery({ queryKey: ["contacts"], queryFn: () => apiGet<Contact[]>("/api/v1/contacts") });
+  const payload = () => ({
+    ...form,
+    companyId: form.companyId || null,
+    applicationId: form.applicationId || null
+  });
+  const resetForm = () => {
+    setForm(initialForm);
+    setEditingId(null);
+  };
   const createContact = useMutation({
-    mutationFn: () =>
-      apiPost<Contact>("/api/v1/contacts", {
-        ...form,
-        companyId: form.companyId || null,
-        applicationId: form.applicationId || null
-      }),
+    mutationFn: () => apiPost<Contact>("/api/v1/contacts", payload()),
     onSuccess: () => {
-      setForm(initialForm);
+      resetForm();
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
+    }
+  });
+  const updateContact = useMutation({
+    mutationFn: () => apiPatch<Contact>(`/api/v1/contacts/${editingId}`, payload()),
+    onSuccess: () => {
+      resetForm();
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
+    }
+  });
+  const deleteContact = useMutation({
+    mutationFn: (id: string) => apiDelete(`/api/v1/contacts/${id}`),
+    onSuccess: () => {
+      resetForm();
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       queryClient.invalidateQueries({ queryKey: ["companies"] });
       queryClient.invalidateQueries({ queryKey: ["applications"] });
@@ -49,7 +78,22 @@ export function ContactsPage() {
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    createContact.mutate();
+    if (editingId) updateContact.mutate();
+    else createContact.mutate();
+  }
+
+  function editContact(contact: Contact) {
+    setEditingId(contact.id);
+    setForm({
+      companyId: contact.companyId ?? contact.company?.id ?? "",
+      applicationId: contact.applicationId ?? contact.application?.id ?? "",
+      name: contact.name,
+      role: contact.role ?? "",
+      email: contact.email ?? "",
+      phone: contact.phone ?? "",
+      linkedinUrl: contact.linkedinUrl ?? "",
+      notes: contact.notes ?? ""
+    });
   }
 
   return (
@@ -65,11 +109,15 @@ export function ContactsPage() {
                 <p className="text-sm">{contact.email || "No email recorded"}</p>
                 {contact.application ? <p className="mt-2 text-sm">Linked to: {contact.application.roleTitle}</p> : null}
                 {contact.notes ? <p className="mt-2 text-sm text-steel">{contact.notes}</p> : null}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button className="bg-white text-ink hover:bg-paper" onClick={() => editContact(contact)} type="button">Edit</button>
+                  <ConfirmDelete onConfirm={() => deleteContact.mutate(contact.id)} disabled={deleteContact.isPending} />
+                </div>
               </article>
             ))}
           </div>
         </Panel>
-        <Panel title="Create Contact">
+        <Panel title={editingId ? "Edit Contact" : "Create Contact"}>
           <form className="grid gap-3" onSubmit={submit}>
             <Field label="Name"><input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></Field>
             <Field label="Role"><input value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })} /></Field>
@@ -91,7 +139,12 @@ export function ContactsPage() {
               </select>
             </Field>
             <Field label="Notes"><textarea rows={4} value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} /></Field>
-            <button disabled={createContact.isPending}>Create Contact</button>
+            <FormActions
+              createLabel="Create Contact"
+              isEditing={Boolean(editingId)}
+              onCancel={resetForm}
+              pending={createContact.isPending || updateContact.isPending}
+            />
           </form>
         </Panel>
       </div>

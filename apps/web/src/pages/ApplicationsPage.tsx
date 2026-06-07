@@ -1,8 +1,10 @@
 import { applicationStages, priorities, remoteModes } from "@interview-os/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useState } from "react";
-import { apiGet, apiPost } from "../lib/api";
+import { apiDelete, apiGet, apiPatch, apiPost } from "../lib/api";
 import { formatDate, label } from "../lib/format";
+import { ConfirmDelete } from "../ui/ConfirmDelete";
+import { FormActions } from "../ui/FormActions";
 import { Field, PageHeader, Panel } from "../ui/Primitives";
 
 type Company = { id: string; name: string };
@@ -11,13 +13,18 @@ type Application = {
   companyId: string;
   company?: Company;
   roleTitle: string;
+  jobUrl?: string | null;
+  source?: string | null;
   stage: string;
+  compensationMin?: number | null;
+  compensationMax?: number | null;
   priority: string;
   remoteMode: string;
   confidence?: number | null;
   nextAction?: string | null;
   nextActionAt?: string | null;
   concerns?: string | null;
+  notes?: string | null;
 };
 
 const initialForm = {
@@ -40,27 +47,73 @@ const initialForm = {
 export function ApplicationsPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState(initialForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const { data: companies = [] } = useQuery({ queryKey: ["companies"], queryFn: () => apiGet<Company[]>("/api/v1/companies") });
   const { data: applications = [] } = useQuery({ queryKey: ["applications"], queryFn: () => apiGet<Application[]>("/api/v1/applications") });
+  const payload = () => ({
+    ...form,
+    compensationMin: form.compensationMin ? Number(form.compensationMin) : null,
+    compensationMax: form.compensationMax ? Number(form.compensationMax) : null,
+    confidence: form.confidence ? Number(form.confidence) : null,
+    nextActionAt: form.nextActionAt || null
+  });
+  const resetForm = () => {
+    setForm(initialForm);
+    setEditingId(null);
+  };
   const createApplication = useMutation({
-    mutationFn: () =>
-      apiPost<Application>("/api/v1/applications", {
-        ...form,
-        compensationMin: form.compensationMin ? Number(form.compensationMin) : null,
-        compensationMax: form.compensationMax ? Number(form.compensationMax) : null,
-        confidence: form.confidence ? Number(form.confidence) : null,
-        nextActionAt: form.nextActionAt || null
-      }),
+    mutationFn: () => apiPost<Application>("/api/v1/applications", payload()),
     onSuccess: () => {
-      setForm(initialForm);
+      resetForm();
       queryClient.invalidateQueries({ queryKey: ["applications"] });
       queryClient.invalidateQueries({ queryKey: ["companies"] });
+    }
+  });
+  const updateApplication = useMutation({
+    mutationFn: () => apiPatch<Application>(`/api/v1/applications/${editingId}`, payload()),
+    onSuccess: () => {
+      resetForm();
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["interviews"] });
+    }
+  });
+  const deleteApplication = useMutation({
+    mutationFn: (id: string) => apiDelete(`/api/v1/applications/${id}`),
+    onSuccess: () => {
+      resetForm();
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["interviews"] });
     }
   });
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    createApplication.mutate();
+    if (editingId) updateApplication.mutate();
+    else createApplication.mutate();
+  }
+
+  function editApplication(application: Application) {
+    setEditingId(application.id);
+    setForm({
+      companyId: application.companyId,
+      roleTitle: application.roleTitle,
+      jobUrl: application.jobUrl ?? "",
+      source: application.source ?? "",
+      stage: application.stage,
+      compensationMin: application.compensationMin ? String(application.compensationMin) : "",
+      compensationMax: application.compensationMax ? String(application.compensationMax) : "",
+      remoteMode: application.remoteMode,
+      priority: application.priority,
+      confidence: application.confidence ? String(application.confidence) : "",
+      concerns: application.concerns ?? "",
+      nextAction: application.nextAction ?? "",
+      nextActionAt: toDatetimeLocal(application.nextActionAt),
+      notes: application.notes ?? ""
+    });
   }
 
   return (
@@ -83,11 +136,15 @@ export function ApplicationsPage() {
                 <p className="mt-3 text-sm">{application.nextAction || "No next action recorded"}</p>
                 <p className="mt-1 text-xs text-steel">Next action date: {formatDate(application.nextActionAt)}</p>
                 {application.concerns ? <p className="mt-2 text-sm text-rust">Concern: {application.concerns}</p> : null}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button className="bg-white text-ink hover:bg-paper" onClick={() => editApplication(application)} type="button">Edit</button>
+                  <ConfirmDelete onConfirm={() => deleteApplication.mutate(application.id)} disabled={deleteApplication.isPending} />
+                </div>
               </article>
             ))}
           </div>
         </Panel>
-        <Panel title="Create Or Import Process">
+        <Panel title={editingId ? "Edit Application" : "Create Or Import Process"}>
           <form className="grid gap-3" onSubmit={submit}>
             <Field label="Company">
               <select required value={form.companyId} onChange={(event) => setForm({ ...form, companyId: event.target.value })}>
@@ -124,10 +181,22 @@ export function ApplicationsPage() {
             <Field label="Next Action"><input value={form.nextAction} onChange={(event) => setForm({ ...form, nextAction: event.target.value })} /></Field>
             <Field label="Next Action Date"><input type="datetime-local" value={form.nextActionAt} onChange={(event) => setForm({ ...form, nextActionAt: event.target.value })} /></Field>
             <Field label="Notes"><textarea rows={4} value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} /></Field>
-            <button disabled={createApplication.isPending}>Save Application</button>
+            <FormActions
+              createLabel="Save Application"
+              isEditing={Boolean(editingId)}
+              onCancel={resetForm}
+              pending={createApplication.isPending || updateApplication.isPending}
+            />
           </form>
         </Panel>
       </div>
     </>
   );
+}
+
+function toDatetimeLocal(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return offsetDate.toISOString().slice(0, 16);
 }

@@ -43,3 +43,11 @@ Milestone 3 stores interview rounds, raw notes, prep notes, and an optional stru
 ## 2026-06-06: Interview UI Scope
 
 Use a single `/interviews` page for interview rounds and notes. Avoid calendar views and dashboard summaries until those milestones are explicitly approved.
+
+## 2026-06-06: Edit And Delete UX
+
+Milestone 3.5 reuses existing create forms for editing instead of adding modal infrastructure. Delete actions require inline confirmation and continue to use hard deletes for v1 local data.
+
+## 2026-06-06: Seed Safety
+
+The seed script remains a development reset seed and is documented as destructive. A `db:seed:dev` alias makes that intent clearer without changing the existing setup command yet.

@@ -1,8 +1,10 @@
 import { interviewFormats, interviewNoteTypes, interviewOutcomes, interviewTypes } from "@interview-os/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useState } from "react";
-import { apiGet, apiPost } from "../lib/api";
+import { apiDelete, apiGet, apiPatch, apiPost } from "../lib/api";
 import { formatDate, label } from "../lib/format";
+import { ConfirmDelete } from "../ui/ConfirmDelete";
+import { FormActions } from "../ui/FormActions";
 import { Field, PageHeader, Panel } from "../ui/Primitives";
 
 type Application = {
@@ -61,19 +63,44 @@ export function InterviewsPage() {
   const queryClient = useQueryClient();
   const [interviewForm, setInterviewForm] = useState(initialInterviewForm);
   const [noteForm, setNoteForm] = useState(initialNoteForm);
+  const [editingInterviewId, setEditingInterviewId] = useState<string | null>(null);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const { data: applications = [] } = useQuery({ queryKey: ["applications"], queryFn: () => apiGet<Application[]>("/api/v1/applications") });
   const { data: interviews = [] } = useQuery({ queryKey: ["interviews"], queryFn: () => apiGet<Interview[]>("/api/v1/interviews") });
+  const interviewPayload = () => ({
+    ...interviewForm,
+    roundNumber: Number(interviewForm.roundNumber),
+    durationMinutes: Number(interviewForm.durationMinutes),
+    scheduledAt: interviewForm.scheduledAt
+  });
+  const resetInterviewForm = () => {
+    setInterviewForm(initialInterviewForm);
+    setEditingInterviewId(null);
+  };
+  const resetNoteForm = () => {
+    setNoteForm(initialNoteForm);
+    setEditingNoteId(null);
+  };
 
   const createInterview = useMutation({
-    mutationFn: () =>
-      apiPost<Interview>("/api/v1/interviews", {
-        ...interviewForm,
-        roundNumber: Number(interviewForm.roundNumber),
-        durationMinutes: Number(interviewForm.durationMinutes),
-        scheduledAt: interviewForm.scheduledAt
-      }),
+    mutationFn: () => apiPost<Interview>("/api/v1/interviews", interviewPayload()),
     onSuccess: () => {
-      setInterviewForm(initialInterviewForm);
+      resetInterviewForm();
+      queryClient.invalidateQueries({ queryKey: ["interviews"] });
+    }
+  });
+  const updateInterview = useMutation({
+    mutationFn: () => apiPatch<Interview>(`/api/v1/interviews/${editingInterviewId}`, interviewPayload()),
+    onSuccess: () => {
+      resetInterviewForm();
+      queryClient.invalidateQueries({ queryKey: ["interviews"] });
+    }
+  });
+  const deleteInterview = useMutation({
+    mutationFn: (id: string) => apiDelete(`/api/v1/interviews/${id}`),
+    onSuccess: () => {
+      resetInterviewForm();
+      resetNoteForm();
       queryClient.invalidateQueries({ queryKey: ["interviews"] });
     }
   });
@@ -85,19 +112,66 @@ export function InterviewsPage() {
         body: noteForm.body
       }),
     onSuccess: () => {
-      setNoteForm(initialNoteForm);
+      resetNoteForm();
+      queryClient.invalidateQueries({ queryKey: ["interviews"] });
+    }
+  });
+  const updateNote = useMutation({
+    mutationFn: () =>
+      apiPatch<InterviewNote>(`/api/v1/interview-notes/${editingNoteId}`, {
+        type: noteForm.type,
+        body: noteForm.body
+      }),
+    onSuccess: () => {
+      resetNoteForm();
+      queryClient.invalidateQueries({ queryKey: ["interviews"] });
+    }
+  });
+  const deleteNote = useMutation({
+    mutationFn: (id: string) => apiDelete(`/api/v1/interview-notes/${id}`),
+    onSuccess: () => {
+      resetNoteForm();
       queryClient.invalidateQueries({ queryKey: ["interviews"] });
     }
   });
 
   function submitInterview(event: FormEvent) {
     event.preventDefault();
-    createInterview.mutate();
+    if (editingInterviewId) updateInterview.mutate();
+    else createInterview.mutate();
   }
 
   function submitNote(event: FormEvent) {
     event.preventDefault();
-    createNote.mutate();
+    if (editingNoteId) updateNote.mutate();
+    else createNote.mutate();
+  }
+
+  function editInterview(interview: Interview) {
+    setEditingInterviewId(interview.id);
+    setInterviewForm({
+      applicationId: interview.applicationId,
+      roundName: interview.roundName,
+      roundNumber: String(interview.roundNumber),
+      type: interview.type,
+      format: interview.format,
+      scheduledAt: toDatetimeLocal(interview.scheduledAt),
+      durationMinutes: String(interview.durationMinutes),
+      interviewers: interview.interviewers ?? "",
+      expectedTopics: interview.expectedTopics ?? "",
+      prepNotes: interview.prepNotes ?? "",
+      rawPostInterviewNotes: interview.rawPostInterviewNotes ?? "",
+      outcome: interview.outcome
+    });
+  }
+
+  function editNote(interviewId: string, note: InterviewNote) {
+    setEditingNoteId(note.id);
+    setNoteForm({
+      interviewId,
+      type: note.type,
+      body: note.body
+    });
   }
 
   return (
@@ -123,11 +197,21 @@ export function InterviewsPage() {
                 {interview.interviewers ? <p className="mt-2 text-sm">Interviewers: {interview.interviewers}</p> : null}
                 {interview.expectedTopics ? <p className="mt-2 text-sm text-steel">Expected: {interview.expectedTopics}</p> : null}
                 {interview.prepNotes ? <p className="mt-2 text-sm text-steel">Prep: {interview.prepNotes}</p> : null}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button className="bg-white text-ink hover:bg-paper" onClick={() => editInterview(interview)} type="button">Edit</button>
+                  <ConfirmDelete onConfirm={() => deleteInterview.mutate(interview.id)} disabled={deleteInterview.isPending} />
+                </div>
                 {interview.notes?.length ? (
                   <div className="mt-4 space-y-2">
                     {interview.notes.map((note) => (
                       <div key={note.id} className="rounded-md bg-white p-3 text-sm">
-                        <p className="font-semibold">{label(note.type)}</p>
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <p className="font-semibold">{label(note.type)}</p>
+                          <div className="flex flex-wrap gap-2">
+                            <button className="bg-paper text-ink hover:bg-line" onClick={() => editNote(interview.id, note)} type="button">Edit</button>
+                            <ConfirmDelete onConfirm={() => deleteNote.mutate(note.id)} disabled={deleteNote.isPending} />
+                          </div>
+                        </div>
                         <p className="mt-1 text-steel">{note.body}</p>
                       </div>
                     ))}
@@ -138,7 +222,7 @@ export function InterviewsPage() {
           </div>
         </Panel>
         <div className="space-y-4">
-          <Panel title="Create Interview Round">
+          <Panel title={editingInterviewId ? "Edit Interview Round" : "Create Interview Round"}>
             <form className="grid gap-3" onSubmit={submitInterview}>
               <Field label="Application">
                 <select required value={interviewForm.applicationId} onChange={(event) => setInterviewForm({ ...interviewForm, applicationId: event.target.value })}>
@@ -177,13 +261,18 @@ export function InterviewsPage() {
               <Field label="Expected Topics"><textarea rows={3} value={interviewForm.expectedTopics} onChange={(event) => setInterviewForm({ ...interviewForm, expectedTopics: event.target.value })} /></Field>
               <Field label="Prep Notes"><textarea rows={3} value={interviewForm.prepNotes} onChange={(event) => setInterviewForm({ ...interviewForm, prepNotes: event.target.value })} /></Field>
               <Field label="Raw Post-Interview Notes"><textarea rows={3} value={interviewForm.rawPostInterviewNotes} onChange={(event) => setInterviewForm({ ...interviewForm, rawPostInterviewNotes: event.target.value })} /></Field>
-              <button disabled={createInterview.isPending}>Create Interview</button>
+              <FormActions
+                createLabel="Create Interview"
+                isEditing={Boolean(editingInterviewId)}
+                onCancel={resetInterviewForm}
+                pending={createInterview.isPending || updateInterview.isPending}
+              />
             </form>
           </Panel>
-          <Panel title="Add Interview Note">
+          <Panel title={editingNoteId ? "Edit Interview Note" : "Add Interview Note"}>
             <form className="grid gap-3" onSubmit={submitNote}>
               <Field label="Interview">
-                <select required value={noteForm.interviewId} onChange={(event) => setNoteForm({ ...noteForm, interviewId: event.target.value })}>
+                <select required disabled={Boolean(editingNoteId)} value={noteForm.interviewId} onChange={(event) => setNoteForm({ ...noteForm, interviewId: event.target.value })}>
                   <option value="">Select interview</option>
                   {interviews.map((interview) => (
                     <option key={interview.id} value={interview.id}>
@@ -198,11 +287,23 @@ export function InterviewsPage() {
                 </select>
               </Field>
               <Field label="Body"><textarea required rows={5} value={noteForm.body} onChange={(event) => setNoteForm({ ...noteForm, body: event.target.value })} /></Field>
-              <button disabled={createNote.isPending}>Add Note</button>
+              <FormActions
+                createLabel="Add Note"
+                isEditing={Boolean(editingNoteId)}
+                onCancel={resetNoteForm}
+                pending={createNote.isPending || updateNote.isPending}
+              />
             </form>
           </Panel>
         </div>
       </div>
     </>
   );
+}
+
+function toDatetimeLocal(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return offsetDate.toISOString().slice(0, 16);
 }

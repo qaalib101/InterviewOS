@@ -52,6 +52,33 @@ describe("CRM routes", () => {
     expect(prisma.application.create).toHaveBeenCalled();
   });
 
+  it("updates an application", async () => {
+    vi.mocked(prisma.company.findFirst).mockResolvedValue({ id: "company-1" } as any);
+    vi.mocked(prisma.application.findFirst).mockResolvedValue({ id: "app-1" } as any);
+    vi.mocked(prisma.application.update).mockResolvedValue({ id: "app-1", stage: "ONSITE" } as any);
+
+    const response = await request(createApp()).patch("/api/v1/applications/app-1").send({
+      companyId: "company-1",
+      roleTitle: "Senior Engineer",
+      stage: "ONSITE",
+      remoteMode: "REMOTE",
+      priority: "HIGH"
+    });
+
+    expect(response.status).toBe(200);
+    expect(prisma.application.update).toHaveBeenCalled();
+  });
+
+  it("deletes an application", async () => {
+    vi.mocked(prisma.application.findFirst).mockResolvedValue({ id: "app-1" } as any);
+    vi.mocked(prisma.application.delete).mockResolvedValue({ id: "app-1" } as any);
+
+    const response = await request(createApp()).delete("/api/v1/applications/app-1");
+
+    expect(response.status).toBe(204);
+    expect(prisma.application.delete).toHaveBeenCalledWith({ where: { id: "app-1" } });
+  });
+
   it("creates a linked contact", async () => {
     vi.mocked(prisma.company.findFirst).mockResolvedValue({ id: "company-1" } as any);
     vi.mocked(prisma.application.findFirst).mockResolvedValue({ id: "app-1" } as any);

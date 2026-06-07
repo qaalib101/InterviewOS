@@ -4,6 +4,6 @@ import { projectMeta } from "./index.js";
 describe("projectMeta", () => {
   it("exports the current project foundation metadata", () => {
     expect(projectMeta.name).toBe("Interview OS");
-    expect(projectMeta.currentMilestone).toBe("Milestone 3: Interviews");
+    expect(projectMeta.currentMilestone).toBe("Milestone 3.5: Usability Maintenance");
   });
 });
