@@ -88,7 +88,7 @@ describe("CRM routes", () => {
       name: "Jamie Carter",
       companyId: "company-1",
       applicationId: "app-1",
-      email: "jamie@example.com"
+      email: "jamie.carter@northstarsystems.dev"
     });
 
     expect(response.status).toBe(201);

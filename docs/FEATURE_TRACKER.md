@@ -36,7 +36,9 @@
 
 ## Milestone 4: Follow-Ups
 
-- [ ] Follow-up tracking
+- [x] Follow-up tracking
+- [x] Complete/reopen follow-ups
+- [x] Link follow-ups to applications, contacts, and interviews
 
 ## Milestone 5: Dashboard
 

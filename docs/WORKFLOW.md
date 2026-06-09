@@ -22,4 +22,4 @@ Interview OS is built incrementally.
 - Do not implement future milestones early.
 - Do not add integrations unless explicitly approved.
 - Do not add abstractions before the current milestone requires them.
-- Keep the code simple, readable, and portfolio-quality.
+- Keep the code simple, readable, and production-oriented.

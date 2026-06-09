@@ -34,7 +34,7 @@ Use explicit Express route files for the three CRM resources. A generic CRUD abs
 
 ## 2026-06-03: CRM UI Shape
 
-Use specific pages for companies, applications, and contacts. Avoid a generic table/form builder for now so the portfolio code stays easy to read.
+Use specific pages for companies, applications, and contacts. Avoid a generic table/form builder for now so the product code stays easy to read and maintain.
 
 ## 2026-06-06: Interview Notes Before AI
 
@@ -51,3 +51,11 @@ Milestone 3.5 reuses existing create forms for editing instead of adding modal i
 ## 2026-06-06: Seed Safety
 
 The seed script remains a development reset seed and is documented as destructive. A `db:seed:dev` alias makes that intent clearer without changing the existing setup command yet.
+
+## 2026-06-09: Follow-Up Status
+
+Milestone 4 models completion with a nullable `completedAt` timestamp instead of a separate status enum. This keeps open/completed filtering simple and preserves when the action was completed.
+
+## 2026-06-09: Follow-Up Links
+
+Follow-ups can link to an application, contact, interview, or any combination of those records. No reminders, notifications, or calendar integration are included in this milestone.

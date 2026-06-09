@@ -1,12 +1,12 @@
 # Interview OS Scope
 
-Interview OS is a personal daily-use job search and interview tracking application. It is a portfolio-quality productivity tool, not a startup product.
+Interview OS is a personal daily-use job search and interview tracking application.
 
 ## Product Goal
 
 - Track active job applications.
 - Track existing interview processes.
-- Store recruiter interactions.
+- Store recruiting contact interactions.
 - Manage interview rounds.
 - Capture interview notes.
 - Analyze interview performance.
@@ -32,8 +32,8 @@ Interview OS is a personal daily-use job search and interview tracking applicati
 - Public sharing.
 - Resume builders.
 
-## Milestone Boundaries
+## Roadmap Boundaries
 
-Milestone 1 includes only project foundation: monorepo, app scaffolds, Docker Compose, Postgres, Prisma setup, shared package, seed data strategy, and setup docs.
+The initial foundation includes the monorepo, app scaffolds, Docker Compose, Postgres, Prisma setup, shared package, seed data strategy, and setup docs.
 
-Business entities and product workflows begin in later milestones only after approval.
+Product workflows are implemented incrementally according to the approved roadmap.

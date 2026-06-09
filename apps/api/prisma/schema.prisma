@@ -67,17 +67,27 @@ enum InterviewNoteType {
   FOLLOW_UP_DRAFT
 }
 
+enum FollowUpType {
+  EMAIL
+  LINKEDIN
+  THANK_YOU
+  CHECK_IN
+  PREP_TASK
+  OTHER
+}
+
 model User {
-  id           String        @id @default(uuid())
-  email        String        @unique
-  name         String
-  companies    Company[]
-  applications Application[]
-  contacts     Contact[]
-  interviews   Interview[]
+  id             String          @id @default(uuid())
+  email          String          @unique
+  name           String
+  companies      Company[]
+  applications   Application[]
+  contacts       Contact[]
+  interviews     Interview[]
   interviewNotes InterviewNote[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  followUps      FollowUp[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 }
 
 model Company {
@@ -118,6 +128,7 @@ model Application {
   notes           String?
   contacts        Contact[]
   interviews      Interview[]
+  followUps       FollowUp[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -143,6 +154,7 @@ model Interview {
   rawPostInterviewNotes String?
   outcome               InterviewOutcome @default(SCHEDULED)
   notes                 InterviewNote[]
+  followUps             FollowUp[]
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
 
@@ -166,6 +178,31 @@ model InterviewNote {
   @@index([interviewId])
 }
 
+model FollowUp {
+  id            String       @id @default(uuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applicationId String?
+  application   Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  contactId     String?
+  contact       Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  interviewId   String?
+  interview     Interview?   @relation(fields: [interviewId], references: [id], onDelete: SetNull)
+  title         String
+  dueAt         DateTime
+  completedAt   DateTime?
+  priority      Priority
+  type          FollowUpType
+  notes         String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([userId, dueAt])
+  @@index([applicationId])
+  @@index([contactId])
+  @@index([interviewId])
+}
+
 model Contact {
   id            String       @id @default(uuid())
   userId        String
@@ -180,6 +217,7 @@ model Contact {
   phone         String?
   linkedinUrl   String?
   notes         String?
+  followUps     FollowUp[]
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 

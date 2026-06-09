@@ -5,7 +5,7 @@ describe("CRM schemas", () => {
   it("validates company input", () => {
     const result = companyInputSchema.safeParse({
       name: "Northstar Systems",
-      website: "https://northstar.example"
+      website: "https://northstarsystems.dev"
     });
 
     expect(result.success).toBe(true);
@@ -44,7 +44,7 @@ describe("CRM schemas", () => {
       name: "Jamie Carter",
       companyId: "company-1",
       applicationId: "application-1",
-      email: "jamie@example.com"
+      email: "jamie.carter@northstarsystems.dev"
     });
 
     expect(result.success).toBe(true);

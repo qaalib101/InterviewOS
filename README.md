@@ -1,24 +1,53 @@
 # Interview OS
 
-Interview OS is a personal job search and interview tracking application built incrementally as a portfolio-quality project.
+Interview OS is a personal operating system for managing job searches, recruiting processes, interview preparation, interview feedback, and follow-up activities.
 
-Current completed milestone: Milestone 3.5, Usability Maintenance.
+It gives one place to track active opportunities, people involved in each process, interview rounds, notes, and the next actions required to keep a search moving.
 
-## Stack
+## Problem
 
-- Web: React, TypeScript, Vite, Tailwind
-- API: Node.js, TypeScript, Express
-- Database: Postgres
-- ORM: Prisma
-- Package manager: pnpm workspaces
+Job searches create scattered operational data: applications live in spreadsheets, contact notes live in email threads, interview prep lives in documents, and follow-ups depend on memory. Interview OS centralizes that work so each opportunity has context, history, and a clear next action.
 
-## Prerequisites
+## Product Overview
+
+Interview OS currently supports:
+
+- Company records.
+- Job applications and existing processes already in progress.
+- Contacts linked to companies and applications.
+- Interview rounds linked to applications.
+- Interview notes and structured analysis storage.
+- Follow-ups linked to applications, contacts, and interviews.
+- Edit/delete workflows for current records.
+- Seeded local data for development reset workflows.
+
+Planned capabilities include:
+
+- Dashboard and process analytics.
+- STAR stories.
+- Interview question bank.
+- Mock interview analysis.
+
+## Architecture
+
+```text
+apps/web      React, TypeScript, Vite, Tailwind
+apps/api      Node.js, TypeScript, Express, Prisma
+packages/shared  Shared schemas, enums, and types
+database      Postgres
+```
+
+The API and web app share validation contracts through `packages/shared`. Prisma manages the Postgres schema and migrations. Local commands load the repo-root `.env` with override enabled so project values such as `DATABASE_URL` win over inherited shell variables.
+
+## Setup
+
+Prerequisites:
 
 - Node.js 22+
 - pnpm 9+
 - Docker
 
-## Setup
+Install and initialize:
 
 ```bash
 pnpm install
@@ -29,52 +58,43 @@ pnpm db:migrate
 pnpm db:seed
 ```
 
-Local commands load the repo-root `.env` with override enabled. That means project values such as `DATABASE_URL` win over any globally exported shell variables for this repo's API, Prisma, and Vite commands.
+`pnpm db:seed` is a development reset seed. It deletes and recreates local CRM, interview, and follow-up records for the seeded local user. Do not run it after entering personal data you want to keep.
 
-`pnpm db:seed` is a development reset seed. It deletes and recreates the local CRM and interview records for the seeded local user. Use it to reset demo data, not after you have entered personal production data you want to keep.
+## Usage
 
-## Development
+Start the API:
 
 ```bash
 pnpm dev:api
+```
+
+Start the web app:
+
+```bash
 pnpm dev:web
 ```
 
-The API runs on `http://localhost:4000`.
+Open:
 
-The web app runs on `http://localhost:5173`.
+```text
+http://localhost:5173
+```
+
+The API runs on:
+
+```text
+http://localhost:4000
+```
 
 ## Verification
 
 ```bash
 pnpm test
-pnpm build
 pnpm lint
+pnpm build
 ```
 
-## Current Scope
-
-Implemented:
-
-- Monorepo foundation.
-- Companies.
-- Applications.
-- Existing process import through initial application stage selection.
-- Contacts linked to companies and optionally applications.
-- Interview rounds.
-- Interview notes.
-- Interview analysis storage schema.
-- Edit/delete UI for current CRM and interview data.
-
-Not implemented yet:
-
-- Follow-ups.
-- Dashboard.
-- STAR stories.
-- Question bank.
-- Mock AI analysis.
-
-## API Routes
+## API Surface
 
 ```text
 GET    /health
@@ -108,4 +128,12 @@ GET    /api/v1/interviews/:id/notes
 POST   /api/v1/interviews/:id/notes
 PATCH  /api/v1/interview-notes/:noteId
 DELETE /api/v1/interview-notes/:noteId
+
+GET    /api/v1/follow-ups
+POST   /api/v1/follow-ups
+GET    /api/v1/follow-ups/:id
+PATCH  /api/v1/follow-ups/:id
+PATCH  /api/v1/follow-ups/:id/complete
+PATCH  /api/v1/follow-ups/:id/reopen
+DELETE /api/v1/follow-ups/:id
 ```
