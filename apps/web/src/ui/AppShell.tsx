@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { BriefcaseBusiness, Building2, CalendarCheck, CalendarClock, Home, Users } from "lucide-react";
+import { BriefcaseBusiness, Building2, CalendarCheck, CalendarClock, FileInput, Home, Users } from "lucide-react";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: Home },
@@ -7,7 +7,8 @@ const navItems = [
   { to: "/applications", label: "Applications", icon: BriefcaseBusiness },
   { to: "/contacts", label: "Contacts", icon: Users },
   { to: "/interviews", label: "Interviews", icon: CalendarClock },
-  { to: "/follow-ups", label: "Follow-Ups", icon: CalendarCheck }
+  { to: "/follow-ups", label: "Follow-Ups", icon: CalendarCheck },
+  { to: "/imports/new", label: "Text Import", icon: FileInput }
 ];
 
 export function AppShell() {

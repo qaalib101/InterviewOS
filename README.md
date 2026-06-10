@@ -19,6 +19,7 @@ Interview OS currently supports:
 - Interview notes and structured analysis storage.
 - Follow-ups linked to applications, contacts, and interviews.
 - Dashboard summary for active applications, upcoming interviews, open follow-ups, recent activity, and pipeline health.
+- AI-assisted text import for turning pasted recruiting text into reviewable draft records.
 - Edit/delete workflows for current records.
 - Seeded local data for development reset workflows.
 
@@ -66,6 +67,28 @@ pnpm db:seed:reset
 
 `pnpm db:seed:reset` deletes and recreates local CRM, interview, follow-up, and activity records for the seeded local user. Do not run it after entering personal data you want to keep.
 
+
+## AI Import Setup
+
+Text import works without external AI credentials when `AI_PROVIDER=mock`. The mock provider is deterministic and suitable for local use.
+
+Optional provider settings:
+
+```bash
+LOCAL_USER_NAME=Qaalib
+AI_USER_ALIASES=Qaalib,Qaalib Farah
+AI_PROVIDER=mock # mock | openai | deepseek | ollama | disabled
+OPENAI_API_KEY=
+DEEPSEEK_API_KEY=
+DEEPSEEK_MODEL=deepseek-v4-flash
+OLLAMA_BASE_URL=
+OLLAMA_MODEL=
+```
+
+If a configured provider is missing required settings, Interview OS disables analysis and shows setup guidance. Existing application features continue to work.
+
+The import prompt uses `LOCAL_USER_NAME` and `AI_USER_ALIASES` to avoid creating recruiter/contact records for you when pasted text references your name.
+
 ## Usage
 
 Start the API:
@@ -107,6 +130,11 @@ GET    /health
 GET    /api/v1/meta
 GET    /api/v1/dashboard
 GET    /api/v1/activity
+GET    /api/v1/ai/status
+POST   /api/v1/imports/analyze
+GET    /api/v1/imports/:id
+PATCH  /api/v1/imports/:id/proposals
+POST   /api/v1/imports/:id/commit
 
 GET    /api/v1/companies
 POST   /api/v1/companies

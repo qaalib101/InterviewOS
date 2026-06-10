@@ -32,7 +32,7 @@ describe("foundation API", () => {
     expect(response.statusCode).toBe(200);
     expect(response.body).toEqual({
       name: "Interview OS",
-      currentMilestone: "Milestone 5: Dashboard"
+      currentMilestone: "AI-Assisted Text Import"
     });
   });
 });

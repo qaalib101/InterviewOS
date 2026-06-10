@@ -76,6 +76,23 @@ enum FollowUpType {
   OTHER
 }
 
+
+enum ImportSourceType {
+  RECRUITER_EMAIL
+  LINKEDIN_MESSAGE
+  JOB_DESCRIPTION
+  INTERVIEW_NOTES
+  FOLLOW_UP
+  UNKNOWN
+}
+
+enum ImportSessionStatus {
+  DRAFT
+  ANALYZED
+  COMMITTED
+  FAILED
+}
+
 enum ActivityEntityType {
   COMPANY
   APPLICATION
@@ -106,6 +123,7 @@ model User {
   interviewNotes InterviewNote[]
   followUps      FollowUp[]
   activityEvents ActivityEvent[]
+  importSessions ImportSession[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 }
@@ -259,4 +277,22 @@ model ActivityEvent {
 
   @@index([userId, occurredAt])
   @@index([entityType, entityId])
+}
+
+model ImportSession {
+  id           String              @id @default(uuid())
+  userId       String
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceType   ImportSourceType
+  rawText      String
+  provider     String
+  status       ImportSessionStatus @default(DRAFT)
+  analysisJson Json?
+  errorMessage String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  committedAt  DateTime?
+
+  @@index([userId, createdAt])
+  @@index([userId, status])
 }

@@ -1,6 +1,7 @@
 import { createApp } from "./app.js";
 import { env } from "./config/env.js";
+import { logInfo } from "./shared/logger.js";
 
 createApp().listen(env.port, () => {
-  console.log(`Interview OS API listening on http://localhost:${env.port}`);
+  logInfo("api_started", { port: env.port });
 });

@@ -67,3 +67,23 @@ Milestone 5 adds an `ActivityEvent` table for recent activity and future process
 ## 2026-06-09: Simple Dashboard Visualizations
 
 Dashboard summaries use server-side aggregate queries and lightweight CSS bars. A charting library is deferred until the product needs richer date-series reporting.
+
+## 2026-06-10: Review-Before-Commit Imports
+
+AI-assisted import creates draft proposals only. Users must review, edit, include, and commit proposals before any company, application, contact, interview, note, or follow-up records are changed.
+
+## 2026-06-10: Provider Abstraction And Mock Default
+
+The import analyzer uses an `AiProvider` abstraction with `mock` as the default provider. Missing OpenAI, DeepSeek, or Ollama configuration returns provider-unavailable guidance instead of crashing the app.
+
+## 2026-06-10: No Automatic External Sync
+
+Text import is paste-driven only. There is no Gmail sync, LinkedIn integration, calendar sync, browser extension, scraping, or background ingestion.
+
+## 2026-06-10: Transactional Import Commit
+
+Import commit runs in one database transaction, commits only included proposals, patches updates without null overwrites, and never deletes data.
+
+## 2026-06-10: User Identity In Import Prompts
+
+AI import prompts include the local user's configured name and aliases so pasted text can distinguish the user from recruiters, contacts, interviewers, and companies. This stays local and does not add authentication or multi-user behavior.

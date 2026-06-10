@@ -2,19 +2,22 @@ import { projectMeta } from "@interview-os/shared";
 import cors from "cors";
 import express from "express";
 import { env } from "./config/env.js";
+import { aiRouter } from "./modules/ai.routes.js";
 import { applicationsRouter } from "./modules/applications.routes.js";
 import { companiesRouter } from "./modules/companies.routes.js";
 import { contactsRouter } from "./modules/contacts.routes.js";
 import { activityRouter, dashboardRouter } from "./modules/dashboard.routes.js";
 import { followUpsRouter } from "./modules/followUps.routes.js";
+import { importsRouter } from "./modules/imports.routes.js";
 import { interviewNotesRouter, interviewsRouter } from "./modules/interviews.routes.js";
-import { errorHandler } from "./shared/http.js";
+import { errorHandler, requestLogger } from "./shared/http.js";
 
 export function createApp() {
   const app = express();
 
   app.use(cors({ origin: env.webOrigin }));
   app.use(express.json());
+  app.use(requestLogger);
 
   app.get("/health", (_req, res) => {
     res.json({ ok: true });
@@ -24,6 +27,8 @@ export function createApp() {
     res.json(projectMeta);
   });
 
+  app.use("/api/v1/ai", aiRouter);
+  app.use("/api/v1/imports", importsRouter);
   app.use("/api/v1/dashboard", dashboardRouter);
   app.use("/api/v1/activity", activityRouter);
   app.use("/api/v1/companies", companiesRouter);

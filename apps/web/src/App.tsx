@@ -6,6 +6,7 @@ import { ApplicationsPage } from "./pages/ApplicationsPage";
 import { ContactsPage } from "./pages/ContactsPage";
 import { InterviewsPage } from "./pages/InterviewsPage";
 import { FollowUpsPage } from "./pages/FollowUpsPage";
+import { ImportNewPage } from "./pages/ImportNewPage";
 
 const router = createBrowserRouter([
   {
@@ -17,7 +18,8 @@ const router = createBrowserRouter([
       { path: "applications", element: <ApplicationsPage /> },
       { path: "contacts", element: <ContactsPage /> },
       { path: "interviews", element: <InterviewsPage /> },
-      { path: "follow-ups", element: <FollowUpsPage /> }
+      { path: "follow-ups", element: <FollowUpsPage /> },
+      { path: "imports/new", element: <ImportNewPage /> }
     ]
   }
 ]);

@@ -18,6 +18,7 @@ async function main() {
     }
   });
 
+  await prisma.importSession.deleteMany({ where: { userId: user.id } });
   await prisma.activityEvent.deleteMany({ where: { userId: user.id } });
   await prisma.followUp.deleteMany({ where: { userId: user.id } });
   await prisma.interviewNote.deleteMany({ where: { userId: user.id } });

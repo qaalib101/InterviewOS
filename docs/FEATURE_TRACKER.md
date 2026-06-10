@@ -58,3 +58,14 @@
 ## Milestone 7: Mock AI Analysis
 
 - [ ] Mock interview analysis provider
+
+## AI-Assisted Text Import
+
+- [x] Paste raw recruiting/job/interview/follow-up text
+- [x] Mock AI provider default
+- [x] Provider status endpoint and UI guidance
+- [x] Reviewable import proposals
+- [x] Editable proposed fields before commit
+- [x] Include/exclude proposals
+- [x] Transactional commit
+- [x] Import session traceability
