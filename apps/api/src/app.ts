@@ -5,6 +5,7 @@ import { env } from "./config/env.js";
 import { applicationsRouter } from "./modules/applications.routes.js";
 import { companiesRouter } from "./modules/companies.routes.js";
 import { contactsRouter } from "./modules/contacts.routes.js";
+import { activityRouter, dashboardRouter } from "./modules/dashboard.routes.js";
 import { followUpsRouter } from "./modules/followUps.routes.js";
 import { interviewNotesRouter, interviewsRouter } from "./modules/interviews.routes.js";
 import { errorHandler } from "./shared/http.js";
@@ -23,6 +24,8 @@ export function createApp() {
     res.json(projectMeta);
   });
 
+  app.use("/api/v1/dashboard", dashboardRouter);
+  app.use("/api/v1/activity", activityRouter);
   app.use("/api/v1/companies", companiesRouter);
   app.use("/api/v1/applications", applicationsRouter);
   app.use("/api/v1/contacts", contactsRouter);

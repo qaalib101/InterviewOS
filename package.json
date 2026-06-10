@@ -11,8 +11,7 @@
     "lint": "pnpm -r lint",
     "db:generate": "pnpm --filter @interview-os/api prisma:generate",
     "db:migrate": "pnpm --filter @interview-os/api prisma:migrate",
-    "db:seed": "pnpm --filter @interview-os/api prisma:seed",
-    "db:seed:dev": "pnpm db:seed"
+    "db:seed:reset": "ALLOW_DESTRUCTIVE_SEED=true pnpm --filter @interview-os/api prisma:seed:reset"
   },
   "packageManager": "pnpm@9.15.0",
   "devDependencies": {

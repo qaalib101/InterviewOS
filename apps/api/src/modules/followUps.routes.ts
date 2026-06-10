@@ -2,6 +2,7 @@ import { followUpInputSchema, followUpUpdateSchema } from "@interview-os/shared"
 import { Router } from "express";
 import { prisma } from "../db/prisma.js";
 import { asyncHandler, getLocalUserId, validateBody } from "../shared/http.js";
+import { recordActivity } from "./activity.js";
 
 export const followUpsRouter = Router();
 
@@ -53,6 +54,14 @@ followUpsRouter.post(
       include: followUpInclude
     });
 
+    await recordActivity(prisma, {
+      userId,
+      entityType: "FOLLOW_UP",
+      entityId: followUp.id,
+      eventType: "CREATED",
+      metadata: followUpMetadata(followUp)
+    });
+
     res.status(201).json(followUp);
   })
 );
@@ -75,6 +84,14 @@ followUpsRouter.patch(
       include: followUpInclude
     });
 
+    await recordActivity(prisma, {
+      userId,
+      entityType: "FOLLOW_UP",
+      entityId: followUp.id,
+      eventType: "UPDATED",
+      metadata: followUpMetadata(followUp)
+    });
+
     res.json(followUp);
   })
 );
@@ -91,6 +108,14 @@ followUpsRouter.patch(
       where: { id },
       data: { completedAt: new Date() },
       include: followUpInclude
+    });
+
+    await recordActivity(prisma, {
+      userId,
+      entityType: "FOLLOW_UP",
+      entityId: followUp.id,
+      eventType: "COMPLETED",
+      metadata: followUpMetadata(followUp)
     });
 
     res.json(followUp);
@@ -111,6 +136,14 @@ followUpsRouter.patch(
       include: followUpInclude
     });
 
+    await recordActivity(prisma, {
+      userId,
+      entityType: "FOLLOW_UP",
+      entityId: followUp.id,
+      eventType: "REOPENED",
+      metadata: followUpMetadata(followUp)
+    });
+
     res.json(followUp);
   })
 );
@@ -123,6 +156,13 @@ followUpsRouter.delete(
     const existing = await prisma.followUp.findFirst({ where: { id, userId } });
     if (!existing) return res.status(404).json({ error: "Follow-up not found" });
 
+    await recordActivity(prisma, {
+      userId,
+      entityType: "FOLLOW_UP",
+      entityId: existing.id,
+      eventType: "DELETED",
+      metadata: followUpMetadata(existing)
+    });
     await prisma.followUp.delete({ where: { id } });
     res.status(204).send();
   })
@@ -148,4 +188,9 @@ async function validateLinks(
   }
 
   return null;
+}
+
+function followUpMetadata(followUp: { title: string; priority: string; dueAt?: Date | string | null }) {
+  const dueAt = followUp.dueAt instanceof Date ? followUp.dueAt.toISOString() : followUp.dueAt ?? null;
+  return { title: followUp.title, priority: followUp.priority, dueAt };
 }

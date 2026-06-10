@@ -2,6 +2,7 @@ import { companyInputSchema } from "@interview-os/shared";
 import { Router } from "express";
 import { prisma } from "../db/prisma.js";
 import { asyncHandler, getLocalUserId, validateBody } from "../shared/http.js";
+import { recordActivity } from "./activity.js";
 
 export const companiesRouter = Router();
 
@@ -43,6 +44,14 @@ companiesRouter.post(
       data: { ...req.body, userId }
     });
 
+    await recordActivity(prisma, {
+      userId,
+      entityType: "COMPANY",
+      entityId: company.id,
+      eventType: "CREATED",
+      metadata: { name: company.name }
+    });
+
     res.status(201).json(company);
   })
 );
@@ -61,6 +70,14 @@ companiesRouter.patch(
       data: req.body
     });
 
+    await recordActivity(prisma, {
+      userId,
+      entityType: "COMPANY",
+      entityId: company.id,
+      eventType: "UPDATED",
+      metadata: { name: company.name }
+    });
+
     res.json(company);
   })
 );
@@ -73,6 +90,13 @@ companiesRouter.delete(
     const existing = await prisma.company.findFirst({ where: { id, userId } });
     if (!existing) return res.status(404).json({ error: "Company not found" });
 
+    await recordActivity(prisma, {
+      userId,
+      entityType: "COMPANY",
+      entityId: existing.id,
+      eventType: "DELETED",
+      metadata: { name: existing.name }
+    });
     await prisma.company.delete({ where: { id } });
     res.status(204).send();
   })

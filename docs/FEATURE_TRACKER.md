@@ -42,11 +42,13 @@
 
 ## Milestone 5: Dashboard
 
-- [ ] Active applications
-- [ ] Upcoming interviews
-- [ ] Follow-ups due
-- [ ] Recent activity
-- [ ] Pipeline by stage
+- [x] Active applications
+- [x] Upcoming interviews
+- [x] Follow-ups due
+- [x] Recent activity
+- [x] Pipeline by stage
+- [x] Follow-up priority summary
+- [x] Interview outcome summary
 
 ## Milestone 6: STAR Stories And Question Bank
 

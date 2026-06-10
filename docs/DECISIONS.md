@@ -50,7 +50,7 @@ Milestone 3.5 reuses existing create forms for editing instead of adding modal i
 
 ## 2026-06-06: Seed Safety
 
-The seed script remains a development reset seed and is documented as destructive. A `db:seed:dev` alias makes that intent clearer without changing the existing setup command yet.
+The seed script is no longer part of setup or normal update workflows. It is guarded behind the explicit `db:seed:reset` command because it deletes existing local data.
 
 ## 2026-06-09: Follow-Up Status
 
@@ -59,3 +59,11 @@ Milestone 4 models completion with a nullable `completedAt` timestamp instead of
 ## 2026-06-09: Follow-Up Links
 
 Follow-ups can link to an application, contact, interview, or any combination of those records. No reminders, notifications, or calendar integration are included in this milestone.
+
+## 2026-06-09: Dashboard Activity Foundation
+
+Milestone 5 adds an `ActivityEvent` table for recent activity and future process-over-time analytics. Activity is recorded by current write routes only; there are no notifications, external integrations, or background jobs.
+
+## 2026-06-09: Simple Dashboard Visualizations
+
+Dashboard summaries use server-side aggregate queries and lightweight CSS bars. A charting library is deferred until the product needs richer date-series reporting.

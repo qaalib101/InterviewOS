@@ -11,7 +11,7 @@
     "lint": "tsc -p tsconfig.json --noEmit",
     "prisma:generate": "dotenv -e ../../.env -o -- prisma generate",
     "prisma:migrate": "dotenv -e ../../.env -o -- prisma migrate dev",
-    "prisma:seed": "dotenv -e ../../.env -o -- tsx prisma/seed.ts"
+    "prisma:seed:reset": "ALLOW_DESTRUCTIVE_SEED=true dotenv -e ../../.env -o -- tsx prisma/seed.ts"
   },
   "dependencies": {
     "@interview-os/shared": "workspace:*",
@@ -31,8 +31,5 @@
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
-  },
-  "prisma": {
-    "seed": "dotenv -e ../../.env -o -- tsx prisma/seed.ts"
   }
 }

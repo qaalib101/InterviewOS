@@ -2,6 +2,7 @@ import { applicationInputSchema, applicationUpdateSchema } from "@interview-os/s
 import { Router } from "express";
 import { prisma } from "../db/prisma.js";
 import { asyncHandler, getLocalUserId, validateBody } from "../shared/http.js";
+import { recordActivity } from "./activity.js";
 
 export const applicationsRouter = Router();
 
@@ -52,6 +53,14 @@ applicationsRouter.post(
       include: applicationInclude
     });
 
+    await recordActivity(prisma, {
+      userId,
+      entityType: "APPLICATION",
+      entityId: application.id,
+      eventType: "CREATED",
+      metadata: { roleTitle: application.roleTitle, companyName: application.company?.name ?? company.name, stage: application.stage }
+    });
+
     res.status(201).json(application);
   })
 );
@@ -76,6 +85,19 @@ applicationsRouter.patch(
       include: applicationInclude
     });
 
+    await recordActivity(prisma, {
+      userId,
+      entityType: "APPLICATION",
+      entityId: application.id,
+      eventType: req.body.stage && req.body.stage !== existing.stage ? "STAGE_CHANGED" : "UPDATED",
+      metadata: {
+        roleTitle: application.roleTitle,
+        companyName: application.company?.name ?? null,
+        previousStage: existing.stage,
+        stage: application.stage
+      }
+    });
+
     res.json(application);
   })
 );
@@ -85,9 +107,16 @@ applicationsRouter.delete(
   asyncHandler(async (req, res) => {
     const userId = await getLocalUserId(prisma);
     const id = String(req.params.id);
-    const existing = await prisma.application.findFirst({ where: { id, userId } });
+    const existing = await prisma.application.findFirst({ where: { id, userId }, include: { company: true } });
     if (!existing) return res.status(404).json({ error: "Application not found" });
 
+    await recordActivity(prisma, {
+      userId,
+      entityType: "APPLICATION",
+      entityId: existing.id,
+      eventType: "DELETED",
+      metadata: { roleTitle: existing.roleTitle, companyName: existing.company?.name ?? null, stage: existing.stage }
+    });
     await prisma.application.delete({ where: { id } });
     res.status(204).send();
   })

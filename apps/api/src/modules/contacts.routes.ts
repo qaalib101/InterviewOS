@@ -2,6 +2,7 @@ import { contactInputSchema } from "@interview-os/shared";
 import { Router } from "express";
 import { prisma } from "../db/prisma.js";
 import { asyncHandler, getLocalUserId, validateBody } from "../shared/http.js";
+import { recordActivity } from "./activity.js";
 
 export const contactsRouter = Router();
 
@@ -52,6 +53,14 @@ contactsRouter.post(
       include: contactInclude
     });
 
+    await recordActivity(prisma, {
+      userId,
+      entityType: "CONTACT",
+      entityId: contact.id,
+      eventType: "CREATED",
+      metadata: { name: contact.name, companyName: contact.company?.name ?? null }
+    });
+
     res.status(201).json(contact);
   })
 );
@@ -74,6 +83,14 @@ contactsRouter.patch(
       include: contactInclude
     });
 
+    await recordActivity(prisma, {
+      userId,
+      entityType: "CONTACT",
+      entityId: contact.id,
+      eventType: "UPDATED",
+      metadata: { name: contact.name, companyName: contact.company?.name ?? null }
+    });
+
     res.json(contact);
   })
 );
@@ -83,9 +100,16 @@ contactsRouter.delete(
   asyncHandler(async (req, res) => {
     const userId = await getLocalUserId(prisma);
     const id = String(req.params.id);
-    const existing = await prisma.contact.findFirst({ where: { id, userId } });
+    const existing = await prisma.contact.findFirst({ where: { id, userId }, include: { company: true } });
     if (!existing) return res.status(404).json({ error: "Contact not found" });
 
+    await recordActivity(prisma, {
+      userId,
+      entityType: "CONTACT",
+      entityId: existing.id,
+      eventType: "DELETED",
+      metadata: { name: existing.name, companyName: existing.company?.name ?? null }
+    });
     await prisma.contact.delete({ where: { id } });
     res.status(204).send();
   })

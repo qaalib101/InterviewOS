@@ -6,6 +6,7 @@ import { prisma } from "../db/prisma.js";
 vi.mock("../db/prisma.js", () => ({
   prisma: {
     user: { upsert: vi.fn() },
+    activityEvent: { findMany: vi.fn(), create: vi.fn() },
     company: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
     application: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
     contact: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() }

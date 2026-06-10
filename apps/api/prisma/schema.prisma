@@ -76,6 +76,25 @@ enum FollowUpType {
   OTHER
 }
 
+enum ActivityEntityType {
+  COMPANY
+  APPLICATION
+  CONTACT
+  INTERVIEW
+  INTERVIEW_NOTE
+  FOLLOW_UP
+}
+
+enum ActivityEventType {
+  CREATED
+  UPDATED
+  DELETED
+  COMPLETED
+  REOPENED
+  STAGE_CHANGED
+  OUTCOME_CHANGED
+}
+
 model User {
   id             String          @id @default(uuid())
   email          String          @unique
@@ -86,6 +105,7 @@ model User {
   interviews     Interview[]
   interviewNotes InterviewNote[]
   followUps      FollowUp[]
+  activityEvents ActivityEvent[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 }
@@ -224,4 +244,19 @@ model Contact {
   @@index([userId])
   @@index([companyId])
   @@index([applicationId])
+}
+
+model ActivityEvent {
+  id         String             @id @default(uuid())
+  userId     String
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entityType ActivityEntityType
+  entityId   String
+  eventType  ActivityEventType
+  occurredAt DateTime           @default(now())
+  metadata   Json?
+  createdAt  DateTime           @default(now())
+
+  @@index([userId, occurredAt])
+  @@index([entityType, entityId])
 }

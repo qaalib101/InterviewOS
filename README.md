@@ -18,12 +18,13 @@ Interview OS currently supports:
 - Interview rounds linked to applications.
 - Interview notes and structured analysis storage.
 - Follow-ups linked to applications, contacts, and interviews.
+- Dashboard summary for active applications, upcoming interviews, open follow-ups, recent activity, and pipeline health.
 - Edit/delete workflows for current records.
 - Seeded local data for development reset workflows.
 
 Planned capabilities include:
 
-- Dashboard and process analytics.
+- Process analytics over time.
 - STAR stories.
 - Interview question bank.
 - Mock interview analysis.
@@ -55,10 +56,15 @@ cp .env.example .env
 docker compose up -d
 pnpm db:generate
 pnpm db:migrate
-pnpm db:seed
 ```
 
-`pnpm db:seed` is a development reset seed. It deletes and recreates local CRM, interview, and follow-up records for the seeded local user. Do not run it after entering personal data you want to keep.
+Seeding is not part of normal setup or update workflows because the seed is destructive. If you intentionally want to replace local data with the built-in starter records, run:
+
+```bash
+pnpm db:seed:reset
+```
+
+`pnpm db:seed:reset` deletes and recreates local CRM, interview, follow-up, and activity records for the seeded local user. Do not run it after entering personal data you want to keep.
 
 ## Usage
 
@@ -99,6 +105,8 @@ pnpm build
 ```text
 GET    /health
 GET    /api/v1/meta
+GET    /api/v1/dashboard
+GET    /api/v1/activity
 
 GET    /api/v1/companies
 POST   /api/v1/companies
