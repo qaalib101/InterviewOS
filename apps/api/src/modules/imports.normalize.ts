@@ -43,6 +43,7 @@ function normalizeProposedFields(entityType: string, value: unknown, proposalIds
     delete fields.title;
   }
   if (entityType === "APPLICATION") {
+    normalizeCompensationFields(fields);
     normalizeFieldEnum(fields, "stage", applicationStageMap, "SAVED");
     normalizeFieldEnum(fields, "remoteMode", remoteModeMap, "UNKNOWN");
     normalizeFieldEnum(fields, "priority", priorityMap, "MEDIUM");
@@ -167,6 +168,34 @@ function normalizeOutcome(value: string) {
   if (/cancel/i.test(value)) return "CANCELED";
   if (/pending|scheduled|plan/i.test(value)) return "SCHEDULED";
   return "SCHEDULED";
+}
+
+function normalizeCompensationFields(fields: Record<string, unknown>) {
+  if (fields.compensationMin === undefined) fields.compensationMin = firstDefined(fields.salaryMin, fields.baseSalaryMin, fields.minSalary);
+  if (fields.compensationMax === undefined) fields.compensationMax = firstDefined(fields.salaryMax, fields.baseSalaryMax, fields.maxSalary);
+  fields.compensationMin = normalizeMoney(fields.compensationMin);
+  fields.compensationMax = normalizeMoney(fields.compensationMax);
+  delete fields.salaryMin;
+  delete fields.salaryMax;
+  delete fields.baseSalaryMin;
+  delete fields.baseSalaryMax;
+  delete fields.minSalary;
+  delete fields.maxSalary;
+}
+
+function firstDefined(...values: unknown[]) {
+  return values.find((value) => value !== undefined && value !== null && value !== "");
+}
+
+function normalizeMoney(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return value < 1000 ? value * 1000 : value;
+  if (typeof value !== "string" || !value.trim()) return value;
+  const compact = value.trim().toLowerCase().replace(/[$,\s]/g, "");
+  const match = compact.match(/^(\d+(?:\.\d+)?)(k)?$/);
+  if (!match) return value;
+  const amount = Number(match[1]);
+  if (!Number.isFinite(amount)) return value;
+  return match[2] || amount < 1000 ? Math.round(amount * 1000) : Math.round(amount);
 }
 
 function normalizeFieldEnum(fields: Record<string, unknown>, key: string, values: Record<string, string>, fallback: string) {

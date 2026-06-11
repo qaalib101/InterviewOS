@@ -44,7 +44,7 @@ async function commitProposal(tx: Tx, userId: string, proposal: ImportProposal, 
 
   if (proposal.entityType === "APPLICATION") {
     const companyId = resolveId(proposal, created, "companyId", "companyProposalId", proposal.operation === "CREATE");
-    const data = stripNulls({ companyId, roleTitle: stringForOperation(proposal, "roleTitle"), jobUrl: field(proposal, "jobUrl"), source: field(proposal, "source"), stage: field(proposal, "stage") ?? (proposal.operation === "CREATE" ? "SAVED" : null), remoteMode: field(proposal, "remoteMode") ?? (proposal.operation === "CREATE" ? "UNKNOWN" : null), priority: field(proposal, "priority") ?? (proposal.operation === "CREATE" ? "MEDIUM" : null), concerns: field(proposal, "concerns"), nextAction: field(proposal, "nextAction"), nextActionAt: dateField(proposal, "nextActionAt"), notes: field(proposal, "notes") });
+    const data = stripNulls({ companyId, roleTitle: stringForOperation(proposal, "roleTitle"), jobUrl: field(proposal, "jobUrl"), source: field(proposal, "source"), stage: field(proposal, "stage") ?? (proposal.operation === "CREATE" ? "SAVED" : null), compensationMin: numberField(proposal, "compensationMin"), compensationMax: numberField(proposal, "compensationMax"), remoteMode: field(proposal, "remoteMode") ?? (proposal.operation === "CREATE" ? "UNKNOWN" : null), priority: field(proposal, "priority") ?? (proposal.operation === "CREATE" ? "MEDIUM" : null), concerns: field(proposal, "concerns"), nextAction: field(proposal, "nextAction"), nextActionAt: dateField(proposal, "nextActionAt"), notes: field(proposal, "notes") });
     const record = proposal.operation === "UPDATE" ? await tx.application.update({ where: { id: requiredExisting(proposal) }, data }) : await tx.application.create({ data: { ...data, userId } as any });
     await recordActivity(tx as any, { userId, entityType: "APPLICATION", entityId: record.id, eventType: proposal.operation === "UPDATE" ? "UPDATED" : "CREATED", metadata: { roleTitle: record.roleTitle } });
     return result(proposal, record.id, record.roleTitle, "/applications");
@@ -122,10 +122,19 @@ function dateForOperation(proposal: ImportProposal, key: string) {
 }
 
 function numberForOperation(proposal: ImportProposal, key: string, fallback: number) {
-  const value = field(proposal, key);
+  const value = numberField(proposal, key);
   if (typeof value === "number") return value;
-  if (typeof value === "string" && value.trim()) return Number(value);
   return proposal.operation === "CREATE" ? fallback : null;
+}
+
+function numberField(proposal: ImportProposal, key: string) {
+  const value = field(proposal, key);
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value.replace(/[$,]/g, ""));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
 }
 
 function dateField(proposal: ImportProposal, key: string) {

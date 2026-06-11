@@ -25,7 +25,17 @@ export const importAnalysisResultSchema = z.object({
 
 export const analyzeImportInputSchema = z.object({
   sourceType: z.enum(importSourceTypes).default("unknown"),
-  rawText: z.string().trim().min(1, "Raw text is required")
+  rawText: z.string().trim().min(1, "Raw text is required"),
+  contextCompanyId: z.string().trim().optional().nullable(),
+  contextApplicationId: z.string().trim().optional().nullable(),
+  contextContactId: z.string().trim().optional().nullable(),
+  contextInterviewId: z.string().trim().optional().nullable(),
+  context: z.object({
+    company: z.object({ id: z.string(), name: z.string() }).optional().nullable(),
+    application: z.object({ id: z.string(), roleTitle: z.string(), companyName: z.string().nullable().optional() }).optional().nullable(),
+    contact: z.object({ id: z.string(), name: z.string(), role: z.string().nullable().optional() }).optional().nullable(),
+    interview: z.object({ id: z.string(), roundName: z.string(), scheduledAt: z.string().nullable().optional(), applicationId: z.string() }).optional().nullable()
+  }).optional()
 });
 
 export const updateImportProposalsInputSchema = z.object({

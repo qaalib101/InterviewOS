@@ -1,11 +1,13 @@
-import { analyzeImportInputSchema, commitImportInputSchema, importAnalysisResultSchema, updateImportProposalsInputSchema } from "@interview-os/shared";
-import type { Prisma } from "@prisma/client";
+import { analyzeImportInputSchema, commitImportInputSchema, updateImportProposalsInputSchema } from "@interview-os/shared";
+import type { AnalyzeImportInput } from "@interview-os/shared";
+import type { Prisma, PrismaClient } from "@prisma/client";
 import { Router } from "express";
 import { prisma } from "../db/prisma.js";
 import { asyncHandler, getLocalUserId, validateBody } from "../shared/http.js";
 import { logError, logInfo, logWarn } from "../shared/logger.js";
 import { getAiProvider } from "./ai/providerFactory.js";
 import { commitImportSession } from "./imports.commit.js";
+import { enhanceImportAnalysis } from "./imports.enhance.js";
 import { applyLocalMatches } from "./imports.matching.js";
 import { normalizeImportAnalysis } from "./imports.normalize.js";
 
@@ -16,6 +18,9 @@ importsRouter.post(
   validateBody(analyzeImportInputSchema),
   asyncHandler(async (req, res) => {
     const userId = await getLocalUserId(prisma);
+    const context = await resolveImportContext(prisma, userId, req.body);
+    if (context.error) return res.status(400).json({ error: context.error });
+
     const provider = getAiProvider();
     const status = provider.status();
 
@@ -37,8 +42,10 @@ importsRouter.post(
     logInfo("import_analysis_started", { sessionId: session.id, provider: provider.name, sourceType: req.body.sourceType, rawTextLength: req.body.rawText.length });
 
     try {
-      const providerAnalysis = normalizeImportAnalysis(await provider.analyzeImport(req.body));
-      const analysis = await applyLocalMatches(prisma, userId, providerAnalysis);
+      const providerInput = { ...req.body, context: context.value };
+      const providerAnalysis = normalizeImportAnalysis(await provider.analyzeImport(providerInput));
+      const matchedAnalysis = await applyLocalMatches(prisma, userId, providerAnalysis);
+      const analysis = enhanceImportAnalysis(providerInput, matchedAnalysis);
       const updated = await prisma.importSession.update({
         where: { id: session.id },
         data: { status: "ANALYZED", analysisJson: analysis as unknown as Prisma.InputJsonValue, errorMessage: null }
@@ -113,4 +120,37 @@ importsRouter.post(
 
 function toDbSourceType(sourceType: string) {
   return sourceType.toUpperCase() as any;
+}
+
+async function resolveImportContext(db: PrismaClient, userId: string, input: AnalyzeImportInput) {
+  const value: NonNullable<AnalyzeImportInput["context"]> = {};
+
+  if (input.contextCompanyId) {
+    const company = await db.company.findFirst({ where: { id: input.contextCompanyId, userId } });
+    if (!company) return { error: "Selected company was not found." };
+    value.company = { id: company.id, name: company.name };
+  }
+
+  if (input.contextApplicationId) {
+    const application = await db.application.findFirst({ where: { id: input.contextApplicationId, userId }, include: { company: true } });
+    if (!application) return { error: "Selected application was not found." };
+    value.application = { id: application.id, roleTitle: application.roleTitle, companyName: application.company?.name ?? null };
+    value.company ??= application.company ? { id: application.company.id, name: application.company.name } : undefined;
+  }
+
+  if (input.contextContactId) {
+    const contact = await db.contact.findFirst({ where: { id: input.contextContactId, userId } });
+    if (!contact) return { error: "Selected contact was not found." };
+    value.contact = { id: contact.id, name: contact.name, role: contact.role };
+  }
+
+  if (input.contextInterviewId) {
+    const interview = await db.interview.findFirst({ where: { id: input.contextInterviewId, userId }, include: { application: { include: { company: true } } } });
+    if (!interview) return { error: "Selected interview was not found." };
+    value.interview = { id: interview.id, roundName: interview.roundName, scheduledAt: interview.scheduledAt.toISOString(), applicationId: interview.applicationId };
+    value.application ??= { id: interview.application.id, roleTitle: interview.application.roleTitle, companyName: interview.application.company?.name ?? null };
+    value.company ??= interview.application.company ? { id: interview.application.company.id, name: interview.application.company.name } : undefined;
+  }
+
+  return { value: Object.keys(value).length ? value : undefined };
 }

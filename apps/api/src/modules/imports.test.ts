@@ -142,6 +142,8 @@ describe("import routes", () => {
             stage: "applied",
             remoteMode: "hybrid",
             priority: "medium",
+            compensationMin: "110k",
+            compensationMax: "150k",
             nextAction: "Send resume and schedule a chat with Deva."
           },
           missingFields: [],
@@ -164,7 +166,9 @@ describe("import routes", () => {
         companyId: "company-1",
         stage: "APPLIED",
         remoteMode: "HYBRID",
-        priority: "MEDIUM"
+        priority: "MEDIUM",
+        compensationMin: 110000,
+        compensationMax: 150000
       })
     });
   });
