@@ -19,16 +19,40 @@ type CommitResponse = {
   records: Array<{ proposalId: string; entityType: string; operation: string; id: string; label: string; path: string }>;
 };
 
+type ApplicationOption = {
+  id: string;
+  roleTitle: string;
+  stage: string;
+  company?: { name: string } | null;
+};
+
+type InterviewOption = {
+  id: string;
+  roundName: string;
+  scheduledAt: string;
+  applicationId: string;
+  application?: { roleTitle: string; company?: { name: string } | null } | null;
+};
+
 export function ImportNewPage() {
   const [sourceType, setSourceType] = useState<ImportSourceType>("unknown");
   const [rawText, setRawText] = useState("");
+  const [contextApplicationId, setContextApplicationId] = useState("");
+  const [contextInterviewId, setContextInterviewId] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<ImportAnalysisResult | null>(null);
   const [commitResult, setCommitResult] = useState<CommitResponse | null>(null);
   const { data: providerStatus } = useQuery({ queryKey: ["ai-status"], queryFn: () => apiGet<AiProviderStatus>("/api/v1/ai/status") });
+  const { data: applications = [] } = useQuery({ queryKey: ["applications"], queryFn: () => apiGet<ApplicationOption[]>("/api/v1/applications") });
+  const { data: interviews = [] } = useQuery({ queryKey: ["interviews"], queryFn: () => apiGet<InterviewOption[]>("/api/v1/interviews") });
 
   const analyze = useMutation({
-    mutationFn: () => apiPost<AnalyzeResponse>("/api/v1/imports/analyze", { sourceType, rawText }),
+    mutationFn: () => apiPost<AnalyzeResponse>("/api/v1/imports/analyze", {
+      sourceType,
+      rawText,
+      contextApplicationId: contextInterviewId ? undefined : contextApplicationId || undefined,
+      contextInterviewId: contextInterviewId || undefined
+    }),
     onSuccess: (response) => {
       setSessionId(response.id);
       setAnalysis(response.analysis);
@@ -62,35 +86,88 @@ export function ImportNewPage() {
     analyze.mutate();
   }
 
+  function changeSourceType(nextSourceType: ImportSourceType) {
+    setSourceType(nextSourceType);
+    setAnalysis(null);
+    setCommitResult(null);
+    if (nextSourceType === "unknown") {
+      setContextApplicationId("");
+      setContextInterviewId("");
+    }
+  }
+
   function updateProposal(next: ImportProposal) {
     if (!analysis) return;
     setAnalysis({ ...analysis, proposals: analysis.proposals.map((proposal) => proposal.id === next.id ? next : proposal) });
   }
 
   const analyzeDisabled = !providerStatus?.available || !rawText.trim() || analyze.isPending;
+  const showContext = sourceType !== "unknown";
+  const includedCount = analysis?.proposals.filter((proposal) => proposal.included && proposal.operation !== "SKIP").length ?? 0;
+  const proposalCount = analysis?.proposals.length ?? 0;
 
   return (
     <>
-      <PageHeader title="Text Import" eyebrow="Review before commit" />
-      <div className="grid gap-4 xl:grid-cols-[420px_1fr]">
+      <PageHeader title="Text Import" eyebrow="Context first, review before commit" />
+      <div className="grid gap-5 xl:grid-cols-[440px_1fr]">
         <div className="space-y-4">
-          <Panel title="Provider Status">
-            <ProviderStatus status={providerStatus} />
-          </Panel>
-          <Panel title="Paste Source Text">
+          <Panel title="Import Setup">
             <form className="grid gap-3" onSubmit={submit}>
+              <ProviderStatus status={providerStatus} />
               <label className="grid gap-1 text-sm font-medium">
                 <span>Source Type</span>
-                <select value={sourceType} onChange={(event) => setSourceType(event.target.value as ImportSourceType)}>
+                <select value={sourceType} onChange={(event) => changeSourceType(event.target.value as ImportSourceType)}>
                   {importSourceTypes.map((type) => <option key={type} value={type}>{label(type)}</option>)}
                 </select>
               </label>
+              {showContext ? (
+                <div className="rounded-xl border border-line bg-sand/60 p-3">
+                  <div className="mb-2">
+                    <p className="text-sm font-semibold">Context</p>
+                    <p className="text-xs text-steel">Optional, but recommended for notes and follow-ups. Selected context overrides AI guesses.</p>
+                  </div>
+                  <div className="grid gap-2">
+                    <label className="grid gap-1 text-sm font-medium">
+                      <span>Existing Interview</span>
+                      <select
+                        value={contextInterviewId}
+                        onChange={(event) => {
+                          setContextInterviewId(event.target.value);
+                          if (event.target.value) setContextApplicationId("");
+                        }}
+                      >
+                        <option value="">No interview selected</option>
+                        {interviews.map((interview) => (
+                          <option key={interview.id} value={interview.id}>
+                            {interview.roundName} · {interview.application?.roleTitle ?? "Application"} · {label(interview.application?.company?.name)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="grid gap-1 text-sm font-medium">
+                      <span>Existing Application</span>
+                      <select
+                        disabled={Boolean(contextInterviewId)}
+                        value={contextApplicationId}
+                        onChange={(event) => setContextApplicationId(event.target.value)}
+                      >
+                        <option value="">{contextInterviewId ? "Using selected interview's application" : "No application selected"}</option>
+                        {applications.map((application) => (
+                          <option key={application.id} value={application.id}>
+                            {application.roleTitle} · {label(application.company?.name)} · {label(application.stage)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                </div>
+              ) : null}
               <label className="grid gap-1 text-sm font-medium">
                 <span>Raw Text</span>
-                <textarea rows={14} value={rawText} onChange={(event) => setRawText(event.target.value)} placeholder="Paste recruiter email, job description, interview notes, or follow-up text." />
+                <textarea rows={16} value={rawText} onChange={(event) => setRawText(event.target.value)} placeholder="Paste recruiter email, job description, interview notes, or follow-up text." />
               </label>
               {analyze.error ? <p className="text-sm text-rust">{analyze.error.message}</p> : null}
-              <button disabled={analyzeDisabled} type="submit">{analyze.isPending ? "Analyzing..." : "Analyze Text"}</button>
+              <button className="w-full" disabled={analyzeDisabled} type="submit">{analyze.isPending ? "Analyzing..." : "Analyze Text"}</button>
             </form>
           </Panel>
         </div>
@@ -98,7 +175,15 @@ export function ImportNewPage() {
         <div className="space-y-4">
           <Panel title="Import Preview">
             {!analysis ? <p className="text-sm text-steel">Analyze pasted text to generate reviewable proposals.</p> : null}
-            {analysis?.summary ? <p className="mb-4 text-sm text-steel">{analysis.summary}</p> : null}
+            {analysis ? (
+              <div className="mb-4 rounded-xl border border-line bg-sand/50 p-3">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold">{includedCount} of {proposalCount} proposals included</p>
+                  <span className="rounded-full bg-ink px-3 py-1 text-xs font-semibold uppercase tracking-widest text-white">Review Required</span>
+                </div>
+                {analysis.summary ? <p className="text-sm text-steel">{analysis.summary}</p> : null}
+              </div>
+            ) : null}
             <div className="space-y-5">
               {grouped.map(([entityType, proposals]) => (
                 <section key={entityType} className="space-y-3">
