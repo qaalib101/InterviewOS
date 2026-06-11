@@ -5,7 +5,7 @@ import { apiDelete, apiGet, apiPatch, apiPost } from "../lib/api";
 import { formatDate, label } from "../lib/format";
 import { ConfirmDelete } from "../ui/ConfirmDelete";
 import { FormActions } from "../ui/FormActions";
-import { Field, PageHeader, Panel } from "../ui/Primitives";
+import { CrudLayout, Field, PageHeader, Panel } from "../ui/Primitives";
 
 type Application = { id: string; roleTitle: string; company?: { name: string } };
 type Contact = { id: string; name: string; company?: { name: string } | null };
@@ -113,8 +113,8 @@ export function FollowUpsPage() {
   return (
     <>
       <PageHeader title="Follow-Ups" eyebrow="Next actions" />
-      <div className="grid gap-4 xl:grid-cols-[1fr_420px]">
-        <div className="space-y-4">
+      <CrudLayout
+        main={<div className="space-y-4">
           <FollowUpList
             actionLabel="Complete"
             actionPending={completeFollowUp.isPending}
@@ -135,8 +135,8 @@ export function FollowUpsPage() {
             onEdit={editFollowUp}
             title="Completed"
           />
-        </div>
-        <Panel title={editingId ? "Edit Follow-Up" : "Create Follow-Up"}>
+        </div>}
+        sidebar={<Panel title={editingId ? "Edit Follow-Up" : "Create Follow-Up"}>
           <form className="grid gap-3" onSubmit={submit}>
             <Field label="Title">
               <input required value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
@@ -190,8 +190,8 @@ export function FollowUpsPage() {
               pending={createFollowUp.isPending || updateFollowUp.isPending}
             />
           </form>
-        </Panel>
-      </div>
+        </Panel>}
+      />
     </>
   );
 }

@@ -5,7 +5,7 @@ import { apiDelete, apiGet, apiPatch, apiPost } from "../lib/api";
 import { formatDate, label } from "../lib/format";
 import { ConfirmDelete } from "../ui/ConfirmDelete";
 import { FormActions } from "../ui/FormActions";
-import { Field, PageHeader, Panel } from "../ui/Primitives";
+import { CrudLayout, Field, PageHeader, Panel } from "../ui/Primitives";
 
 type Application = {
   id: string;
@@ -177,8 +177,8 @@ export function InterviewsPage() {
   return (
     <>
       <PageHeader title="Interviews" eyebrow="Rounds and notes" />
-      <div className="grid gap-4 xl:grid-cols-[1fr_420px]">
-        <Panel title="Interview Rounds">
+      <CrudLayout
+        main={<Panel title="Interview Rounds">
           <div className="space-y-3">
             {interviews.map((interview) => (
               <article key={interview.id} className="rounded-md border border-line bg-paper p-4">
@@ -220,8 +220,8 @@ export function InterviewsPage() {
               </article>
             ))}
           </div>
-        </Panel>
-        <div className="space-y-4">
+        </Panel>}
+        sidebar={<div className="space-y-4">
           <Panel title={editingInterviewId ? "Edit Interview Round" : "Create Interview Round"}>
             <form className="grid gap-3" onSubmit={submitInterview}>
               <Field label="Application">
@@ -295,8 +295,8 @@ export function InterviewsPage() {
               />
             </form>
           </Panel>
-        </div>
-      </div>
+        </div>}
+      />
     </>
   );
 }

@@ -5,7 +5,7 @@ import { apiDelete, apiGet, apiPatch, apiPost } from "../lib/api";
 import { formatDate, label } from "../lib/format";
 import { ConfirmDelete } from "../ui/ConfirmDelete";
 import { FormActions } from "../ui/FormActions";
-import { Field, PageHeader, Panel } from "../ui/Primitives";
+import { CrudLayout, Field, PageHeader, Panel } from "../ui/Primitives";
 
 type Company = { id: string; name: string };
 type Application = {
@@ -119,8 +119,8 @@ export function ApplicationsPage() {
   return (
     <>
       <PageHeader title="Applications" eyebrow="New and existing processes" />
-      <div className="grid gap-4 xl:grid-cols-[1fr_420px]">
-        <Panel title="Application Pipeline">
+      <CrudLayout
+        main={<Panel title="Application Pipeline">
           <div className="space-y-3">
             {applications.map((application) => (
               <article key={application.id} className="rounded-md border border-line bg-paper p-4">
@@ -143,8 +143,8 @@ export function ApplicationsPage() {
               </article>
             ))}
           </div>
-        </Panel>
-        <Panel title={editingId ? "Edit Application" : "Create Or Import Process"}>
+        </Panel>}
+        sidebar={<Panel title={editingId ? "Edit Application" : "Create Or Import Process"}>
           <form className="grid gap-3" onSubmit={submit}>
             <Field label="Company">
               <select required value={form.companyId} onChange={(event) => setForm({ ...form, companyId: event.target.value })}>
@@ -188,8 +188,8 @@ export function ApplicationsPage() {
               pending={createApplication.isPending || updateApplication.isPending}
             />
           </form>
-        </Panel>
-      </div>
+        </Panel>}
+      />
     </>
   );
 }

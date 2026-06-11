@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 export function PageHeader({ title, eyebrow }: { title: string; eyebrow?: string }) {
   return (
@@ -24,5 +24,14 @@ export function Field({ label, children }: { label: string; children: ReactNode 
       <span>{label}</span>
       {children}
     </label>
+  );
+}
+
+export function CrudLayout({ main, sidebar, sidebarWidth = "420px" }: { main: ReactNode; sidebar: ReactNode; sidebarWidth?: "380px" | "420px" | "440px" }) {
+  return (
+    <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_var(--sidebar-width)]" style={{ "--sidebar-width": sidebarWidth } as CSSProperties}>
+      <div className="min-w-0">{main}</div>
+      <aside className="min-w-0">{sidebar}</aside>
+    </div>
   );
 }

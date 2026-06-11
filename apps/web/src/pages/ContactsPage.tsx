@@ -3,7 +3,7 @@ import { FormEvent, useState } from "react";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../lib/api";
 import { ConfirmDelete } from "../ui/ConfirmDelete";
 import { FormActions } from "../ui/FormActions";
-import { Field, PageHeader, Panel } from "../ui/Primitives";
+import { CrudLayout, Field, PageHeader, Panel } from "../ui/Primitives";
 
 type Company = { id: string; name: string };
 type Application = { id: string; roleTitle: string; company?: Company };
@@ -99,8 +99,9 @@ export function ContactsPage() {
   return (
     <>
       <PageHeader title="Contacts" eyebrow="Recruiters and hiring contacts" />
-      <div className="grid gap-4 xl:grid-cols-[1fr_380px]">
-        <Panel title="Contact Profiles">
+      <CrudLayout
+        sidebarWidth="380px"
+        main={<Panel title="Contact Profiles">
           <div className="space-y-3">
             {contacts.map((contact) => (
               <article key={contact.id} className="rounded-md border border-line bg-paper p-4">
@@ -116,8 +117,8 @@ export function ContactsPage() {
               </article>
             ))}
           </div>
-        </Panel>
-        <Panel title={editingId ? "Edit Contact" : "Create Contact"}>
+        </Panel>}
+        sidebar={<Panel title={editingId ? "Edit Contact" : "Create Contact"}>
           <form className="grid gap-3" onSubmit={submit}>
             <Field label="Name"><input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></Field>
             <Field label="Role"><input value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })} /></Field>
@@ -146,8 +147,8 @@ export function ContactsPage() {
               pending={createContact.isPending || updateContact.isPending}
             />
           </form>
-        </Panel>
-      </div>
+        </Panel>}
+      />
     </>
   );
 }

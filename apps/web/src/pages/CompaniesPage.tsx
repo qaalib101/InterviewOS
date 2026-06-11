@@ -3,7 +3,7 @@ import { FormEvent, useState } from "react";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../lib/api";
 import { ConfirmDelete } from "../ui/ConfirmDelete";
 import { FormActions } from "../ui/FormActions";
-import { Field, PageHeader, Panel } from "../ui/Primitives";
+import { CrudLayout, Field, PageHeader, Panel } from "../ui/Primitives";
 
 type Company = {
   id: string;
@@ -72,8 +72,9 @@ export function CompaniesPage() {
   return (
     <>
       <PageHeader title="Companies" eyebrow="Core CRM" />
-      <div className="grid gap-4 xl:grid-cols-[1fr_380px]">
-        <Panel title="Company Profiles">
+      <CrudLayout
+        sidebarWidth="380px"
+        main={<Panel title="Company Profiles">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-left text-sm">
               <thead>
@@ -103,8 +104,8 @@ export function CompaniesPage() {
               </tbody>
             </table>
           </div>
-        </Panel>
-        <Panel title={editingId ? "Edit Company" : "Create Company"}>
+        </Panel>}
+        sidebar={<Panel title={editingId ? "Edit Company" : "Create Company"}>
           <form className="grid gap-3" onSubmit={submit}>
             <Field label="Name"><input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></Field>
             <Field label="Website"><input value={form.website} onChange={(event) => setForm({ ...form, website: event.target.value })} /></Field>
@@ -118,8 +119,8 @@ export function CompaniesPage() {
               pending={createCompany.isPending || updateCompany.isPending}
             />
           </form>
-        </Panel>
-      </div>
+        </Panel>}
+      />
     </>
   );
 }
