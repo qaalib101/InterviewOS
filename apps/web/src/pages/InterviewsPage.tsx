@@ -6,6 +6,7 @@ import { formatDate, label } from "../lib/format";
 import { ConfirmDelete } from "../ui/ConfirmDelete";
 import { FormActions } from "../ui/FormActions";
 import { CrudLayout, Field, PageHeader, Panel } from "../ui/Primitives";
+import { useCrudToast } from "../ui/Toast";
 
 type Application = {
   id: string;
@@ -61,6 +62,8 @@ const initialNoteForm = {
 
 export function InterviewsPage() {
   const queryClient = useQueryClient();
+  const interviewToast = useCrudToast("Interview");
+  const noteToast = useCrudToast("Interview note");
   const [interviewForm, setInterviewForm] = useState(initialInterviewForm);
   const [noteForm, setNoteForm] = useState(initialNoteForm);
   const [editingInterviewId, setEditingInterviewId] = useState<string | null>(null);
@@ -85,16 +88,22 @@ export function InterviewsPage() {
   const createInterview = useMutation({
     mutationFn: () => apiPost<Interview>("/api/v1/interviews", interviewPayload()),
     onSuccess: () => {
+      const roundName = interviewForm.roundName;
       resetInterviewForm();
       queryClient.invalidateQueries({ queryKey: ["interviews"] });
-    }
+      interviewToast.created(roundName);
+    },
+    onError: (error) => interviewToast.failed("create", error)
   });
   const updateInterview = useMutation({
     mutationFn: () => apiPatch<Interview>(`/api/v1/interviews/${editingInterviewId}`, interviewPayload()),
     onSuccess: () => {
+      const roundName = interviewForm.roundName;
       resetInterviewForm();
       queryClient.invalidateQueries({ queryKey: ["interviews"] });
-    }
+      interviewToast.updated(roundName);
+    },
+    onError: (error) => interviewToast.failed("update", error)
   });
   const deleteInterview = useMutation({
     mutationFn: (id: string) => apiDelete(`/api/v1/interviews/${id}`),
@@ -102,7 +111,9 @@ export function InterviewsPage() {
       resetInterviewForm();
       resetNoteForm();
       queryClient.invalidateQueries({ queryKey: ["interviews"] });
-    }
+      interviewToast.deleted();
+    },
+    onError: (error) => interviewToast.failed("delete", error)
   });
 
   const createNote = useMutation({
@@ -114,7 +125,9 @@ export function InterviewsPage() {
     onSuccess: () => {
       resetNoteForm();
       queryClient.invalidateQueries({ queryKey: ["interviews"] });
-    }
+      noteToast.created();
+    },
+    onError: (error) => noteToast.failed("create", error)
   });
   const updateNote = useMutation({
     mutationFn: () =>
@@ -125,14 +138,18 @@ export function InterviewsPage() {
     onSuccess: () => {
       resetNoteForm();
       queryClient.invalidateQueries({ queryKey: ["interviews"] });
-    }
+      noteToast.updated();
+    },
+    onError: (error) => noteToast.failed("update", error)
   });
   const deleteNote = useMutation({
     mutationFn: (id: string) => apiDelete(`/api/v1/interview-notes/${id}`),
     onSuccess: () => {
       resetNoteForm();
       queryClient.invalidateQueries({ queryKey: ["interviews"] });
-    }
+      noteToast.deleted();
+    },
+    onError: (error) => noteToast.failed("delete", error)
   });
 
   function submitInterview(event: FormEvent) {

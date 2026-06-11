@@ -7,6 +7,7 @@ import { ContactsPage } from "./pages/ContactsPage";
 import { InterviewsPage } from "./pages/InterviewsPage";
 import { FollowUpsPage } from "./pages/FollowUpsPage";
 import { ImportNewPage } from "./pages/ImportNewPage";
+import { ToastProvider } from "./ui/Toast";
 
 const router = createBrowserRouter([
   {
@@ -25,5 +26,9 @@ const router = createBrowserRouter([
 ]);
 
 export function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <ToastProvider>
+      <RouterProvider router={router} />
+    </ToastProvider>
+  );
 }

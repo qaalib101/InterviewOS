@@ -4,6 +4,7 @@ import { apiDelete, apiGet, apiPatch, apiPost } from "../lib/api";
 import { ConfirmDelete } from "../ui/ConfirmDelete";
 import { FormActions } from "../ui/FormActions";
 import { CrudLayout, Field, PageHeader, Panel } from "../ui/Primitives";
+import { useCrudToast } from "../ui/Toast";
 
 type Company = { id: string; name: string };
 type Application = { id: string; roleTitle: string; company?: Company };
@@ -34,6 +35,7 @@ const initialForm = {
 
 export function ContactsPage() {
   const queryClient = useQueryClient();
+  const crudToast = useCrudToast("Contact");
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const { data: companies = [] } = useQuery({ queryKey: ["companies"], queryFn: () => apiGet<Company[]>("/api/v1/companies") });
@@ -51,20 +53,26 @@ export function ContactsPage() {
   const createContact = useMutation({
     mutationFn: () => apiPost<Contact>("/api/v1/contacts", payload()),
     onSuccess: () => {
+      const name = form.name;
       resetForm();
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       queryClient.invalidateQueries({ queryKey: ["companies"] });
       queryClient.invalidateQueries({ queryKey: ["applications"] });
-    }
+      crudToast.created(name);
+    },
+    onError: (error) => crudToast.failed("create", error)
   });
   const updateContact = useMutation({
     mutationFn: () => apiPatch<Contact>(`/api/v1/contacts/${editingId}`, payload()),
     onSuccess: () => {
+      const name = form.name;
       resetForm();
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       queryClient.invalidateQueries({ queryKey: ["companies"] });
       queryClient.invalidateQueries({ queryKey: ["applications"] });
-    }
+      crudToast.updated(name);
+    },
+    onError: (error) => crudToast.failed("update", error)
   });
   const deleteContact = useMutation({
     mutationFn: (id: string) => apiDelete(`/api/v1/contacts/${id}`),
@@ -73,7 +81,9 @@ export function ContactsPage() {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       queryClient.invalidateQueries({ queryKey: ["companies"] });
       queryClient.invalidateQueries({ queryKey: ["applications"] });
-    }
+      crudToast.deleted();
+    },
+    onError: (error) => crudToast.failed("delete", error)
   });
 
   function submit(event: FormEvent) {

@@ -8,6 +8,7 @@ import { label } from "../lib/format";
 import { ImportProposalCard } from "../ui/ImportProposalCard";
 import { PageHeader, Panel } from "../ui/Primitives";
 import { ProviderStatus } from "../ui/ProviderStatus";
+import { useToast } from "../ui/Toast";
 
 type AnalyzeResponse = {
   id: string;
@@ -35,6 +36,7 @@ type InterviewOption = {
 };
 
 export function ImportNewPage() {
+  const toast = useToast();
   const [sourceType, setSourceType] = useState<ImportSourceType>("unknown");
   const [rawText, setRawText] = useState("");
   const [contextApplicationId, setContextApplicationId] = useState("");
@@ -57,11 +59,18 @@ export function ImportNewPage() {
       setSessionId(response.id);
       setAnalysis(response.analysis);
       setCommitResult(null);
+      toast.success("Import analyzed", `${response.analysis.proposals.length} proposals are ready to review.`);
+    },
+    onError: (error) => {
+      toast.error("Import analysis failed", error instanceof Error ? error.message : "Review the source text and provider configuration.");
     }
   });
 
   const saveProposals = useMutation({
-    mutationFn: (nextAnalysis: ImportAnalysisResult) => apiPatch<AnalyzeResponse>(`/api/v1/imports/${sessionId}/proposals`, { analysis: nextAnalysis })
+    mutationFn: (nextAnalysis: ImportAnalysisResult) => apiPatch<AnalyzeResponse>(`/api/v1/imports/${sessionId}/proposals`, { analysis: nextAnalysis }),
+    onError: (error) => {
+      toast.error("Could not save review edits", error instanceof Error ? error.message : "Try again before committing.");
+    }
   });
 
   const commit = useMutation({
@@ -70,7 +79,13 @@ export function ImportNewPage() {
       await saveProposals.mutateAsync(analysis);
       return apiPost<CommitResponse>(`/api/v1/imports/${sessionId}/commit`, { analysis });
     },
-    onSuccess: setCommitResult
+    onSuccess: (response) => {
+      setCommitResult(response);
+      toast.success("Import committed", `${response.records.length} records were created or updated.`);
+    },
+    onError: (error) => {
+      toast.error("Import commit failed", error instanceof Error ? error.message : "No records were committed.");
+    }
   });
 
   const grouped = useMemo(() => {

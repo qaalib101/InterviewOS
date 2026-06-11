@@ -6,6 +6,7 @@ import { formatDate, label } from "../lib/format";
 import { ConfirmDelete } from "../ui/ConfirmDelete";
 import { FormActions } from "../ui/FormActions";
 import { CrudLayout, Field, PageHeader, Panel } from "../ui/Primitives";
+import { useCrudToast } from "../ui/Toast";
 
 type Application = { id: string; roleTitle: string; company?: { name: string } };
 type Contact = { id: string; name: string; company?: { name: string } | null };
@@ -39,6 +40,7 @@ const initialForm = {
 
 export function FollowUpsPage() {
   const queryClient = useQueryClient();
+  const crudToast = useCrudToast("Follow-up");
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const { data: applications = [] } = useQuery({ queryKey: ["applications"], queryFn: () => apiGet<Application[]>("/api/v1/applications") });
@@ -63,31 +65,47 @@ export function FollowUpsPage() {
   const createFollowUp = useMutation({
     mutationFn: () => apiPost<FollowUp>("/api/v1/follow-ups", payload()),
     onSuccess: () => {
+      const title = form.title;
       resetForm();
       invalidate();
-    }
+      crudToast.created(title);
+    },
+    onError: (error) => crudToast.failed("create", error)
   });
   const updateFollowUp = useMutation({
     mutationFn: () => apiPatch<FollowUp>(`/api/v1/follow-ups/${editingId}`, payload()),
     onSuccess: () => {
+      const title = form.title;
       resetForm();
       invalidate();
-    }
+      crudToast.updated(title);
+    },
+    onError: (error) => crudToast.failed("update", error)
   });
   const deleteFollowUp = useMutation({
     mutationFn: (id: string) => apiDelete(`/api/v1/follow-ups/${id}`),
     onSuccess: () => {
       resetForm();
       invalidate();
-    }
+      crudToast.deleted();
+    },
+    onError: (error) => crudToast.failed("delete", error)
   });
   const completeFollowUp = useMutation({
     mutationFn: (id: string) => apiPatch<FollowUp>(`/api/v1/follow-ups/${id}/complete`, {}),
-    onSuccess: invalidate
+    onSuccess: (followUp) => {
+      invalidate();
+      crudToast.completed(followUp.title);
+    },
+    onError: (error) => crudToast.failed("complete", error)
   });
   const reopenFollowUp = useMutation({
     mutationFn: (id: string) => apiPatch<FollowUp>(`/api/v1/follow-ups/${id}/reopen`, {}),
-    onSuccess: invalidate
+    onSuccess: (followUp) => {
+      invalidate();
+      crudToast.reopened(followUp.title);
+    },
+    onError: (error) => crudToast.failed("reopen", error)
   });
 
   function submit(event: FormEvent) {

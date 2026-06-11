@@ -4,6 +4,7 @@ import { apiDelete, apiGet, apiPatch, apiPost } from "../lib/api";
 import { ConfirmDelete } from "../ui/ConfirmDelete";
 import { FormActions } from "../ui/FormActions";
 import { CrudLayout, Field, PageHeader, Panel } from "../ui/Primitives";
+import { useCrudToast } from "../ui/Toast";
 
 type Company = {
   id: string;
@@ -17,6 +18,7 @@ type Company = {
 
 export function CompaniesPage() {
   const queryClient = useQueryClient();
+  const crudToast = useCrudToast("Company");
   const [form, setForm] = useState({ name: "", website: "", industry: "", location: "", notes: "" });
   const [editingId, setEditingId] = useState<string | null>(null);
   const { data: companies = [] } = useQuery({ queryKey: ["companies"], queryFn: () => apiGet<Company[]>("/api/v1/companies") });
@@ -29,17 +31,22 @@ export function CompaniesPage() {
     onSuccess: () => {
       resetForm();
       queryClient.invalidateQueries({ queryKey: ["companies"] });
-    }
+      crudToast.created(form.name);
+    },
+    onError: (error) => crudToast.failed("create", error)
   });
   const updateCompany = useMutation({
     mutationFn: () => apiPatch<Company>(`/api/v1/companies/${editingId}`, form),
     onSuccess: () => {
+      const name = form.name;
       resetForm();
       queryClient.invalidateQueries({ queryKey: ["companies"] });
       queryClient.invalidateQueries({ queryKey: ["applications"] });
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       queryClient.invalidateQueries({ queryKey: ["interviews"] });
-    }
+      crudToast.updated(name);
+    },
+    onError: (error) => crudToast.failed("update", error)
   });
   const deleteCompany = useMutation({
     mutationFn: (id: string) => apiDelete(`/api/v1/companies/${id}`),
@@ -49,7 +56,9 @@ export function CompaniesPage() {
       queryClient.invalidateQueries({ queryKey: ["applications"] });
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       queryClient.invalidateQueries({ queryKey: ["interviews"] });
-    }
+      crudToast.deleted();
+    },
+    onError: (error) => crudToast.failed("delete", error)
   });
 
   function submit(event: FormEvent) {
