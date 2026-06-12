@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { apiGet, apiPatch, apiPost } from "../lib/api";
 import { label } from "../lib/format";
 import { ImportProposalCard } from "../ui/ImportProposalCard";
+import { LoadingButton } from "../ui/LoadingButton";
 import { PageHeader, Panel } from "../ui/Primitives";
 import { ProviderStatus } from "../ui/ProviderStatus";
 import { useToast } from "../ui/Toast";
@@ -90,11 +91,13 @@ export function ImportNewPage() {
 
   const grouped = useMemo(() => {
     const groups = new Map<string, ImportProposal[]>();
-    for (const proposal of analysis?.proposals ?? []) {
+    for (const proposal of analysis?.proposals.filter((item) => item.operation !== "SKIP") ?? []) {
       groups.set(proposal.entityType, [...(groups.get(proposal.entityType) ?? []), proposal]);
     }
     return [...groups.entries()];
   }, [analysis]);
+
+  const matchedContext = useMemo(() => analysis?.proposals.filter((proposal) => proposal.operation === "SKIP" && proposal.existingEntityId) ?? [], [analysis]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -119,7 +122,7 @@ export function ImportNewPage() {
   const analyzeDisabled = !providerStatus?.available || !rawText.trim() || analyze.isPending;
   const showContext = sourceType !== "unknown";
   const includedCount = analysis?.proposals.filter((proposal) => proposal.included && proposal.operation !== "SKIP").length ?? 0;
-  const proposalCount = analysis?.proposals.length ?? 0;
+  const proposalCount = analysis?.proposals.filter((proposal) => proposal.operation !== "SKIP").length ?? 0;
 
   return (
     <>
@@ -182,7 +185,9 @@ export function ImportNewPage() {
                 <textarea rows={16} value={rawText} onChange={(event) => setRawText(event.target.value)} placeholder="Paste recruiter email, job description, interview notes, or follow-up text." />
               </label>
               {analyze.error ? <p className="text-sm text-rust">{analyze.error.message}</p> : null}
-              <button className="w-full" disabled={analyzeDisabled} type="submit">{analyze.isPending ? "Analyzing..." : "Analyze Text"}</button>
+              <LoadingButton className="w-full" disabled={analyzeDisabled} loading={analyze.isPending} loadingLabel="Analyzing..." type="submit">
+                Analyze Text
+              </LoadingButton>
             </form>
           </Panel>
         </div>
@@ -193,12 +198,13 @@ export function ImportNewPage() {
             {analysis ? (
               <div className="mb-4 rounded-xl border border-line bg-sand/50 p-3">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-semibold">{includedCount} of {proposalCount} proposals included</p>
+                  <p className="text-sm font-semibold">{includedCount} of {proposalCount} actionable proposals included</p>
                   <span className="rounded-full bg-ink px-3 py-1 text-xs font-semibold uppercase tracking-widest text-white">Review Required</span>
                 </div>
                 {analysis.summary ? <p className="text-sm text-steel">{analysis.summary}</p> : null}
               </div>
             ) : null}
+            {analysis && proposalCount === 0 ? <p className="text-sm text-steel">No database changes were detected from this import.</p> : null}
             <div className="space-y-5">
               {grouped.map(([entityType, proposals]) => (
                 <section key={entityType} className="space-y-3">
@@ -207,11 +213,24 @@ export function ImportNewPage() {
                 </section>
               ))}
             </div>
+            {matchedContext.length ? (
+              <div className="mt-5 rounded-xl border border-line bg-sand/50 p-3">
+                <p className="text-sm font-semibold">Matched context</p>
+                <p className="mt-1 text-xs text-steel">These existing records were recognized but do not need changes.</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {matchedContext.map((proposal) => (
+                    <span className="rounded-full border border-line bg-paper px-3 py-1 text-xs text-steel" key={proposal.id}>
+                      {label(proposal.entityType)} · {proposal.matchReason ?? "No changes needed"}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             {analysis ? (
               <div className="mt-5 flex flex-wrap gap-3">
-                <button disabled={commit.isPending || saveProposals.isPending} onClick={() => commit.mutate()} type="button">
-                  {commit.isPending ? "Committing..." : "Commit Included Proposals"}
-                </button>
+                <LoadingButton disabled={includedCount === 0} loading={commit.isPending || saveProposals.isPending} loadingLabel={saveProposals.isPending ? "Saving review..." : "Committing..."} onClick={() => commit.mutate()} type="button">
+                  Commit Included Proposals
+                </LoadingButton>
                 {commit.error ? <p className="text-sm text-rust">{commit.error.message}</p> : null}
               </div>
             ) : null}
