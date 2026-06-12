@@ -105,7 +105,7 @@ export function CompaniesPage() {
                     <td className="py-3 pr-4">
                       <div className="flex flex-wrap gap-2">
                         <button className="bg-white text-ink hover:bg-paper" onClick={() => editCompany(company)} type="button">Edit</button>
-                        <ConfirmDelete onConfirm={() => deleteCompany.mutate(company.id)} disabled={deleteCompany.isPending} />
+                        <ConfirmDelete onConfirm={() => deleteCompany.mutate(company.id)} loading={deleteCompany.isPending} />
                       </div>
                     </td>
                   </tr>

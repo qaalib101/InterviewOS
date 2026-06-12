@@ -216,7 +216,7 @@ export function InterviewsPage() {
                 {interview.prepNotes ? <p className="mt-2 text-sm text-steel">Prep: {interview.prepNotes}</p> : null}
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button className="bg-white text-ink hover:bg-paper" onClick={() => editInterview(interview)} type="button">Edit</button>
-                  <ConfirmDelete onConfirm={() => deleteInterview.mutate(interview.id)} disabled={deleteInterview.isPending} />
+                  <ConfirmDelete onConfirm={() => deleteInterview.mutate(interview.id)} loading={deleteInterview.isPending} />
                 </div>
                 {interview.notes?.length ? (
                   <div className="mt-4 space-y-2">
@@ -226,7 +226,7 @@ export function InterviewsPage() {
                           <p className="font-semibold">{label(note.type)}</p>
                           <div className="flex flex-wrap gap-2">
                             <button className="bg-paper text-ink hover:bg-line" onClick={() => editNote(interview.id, note)} type="button">Edit</button>
-                            <ConfirmDelete onConfirm={() => deleteNote.mutate(note.id)} disabled={deleteNote.isPending} />
+                            <ConfirmDelete onConfirm={() => deleteNote.mutate(note.id)} loading={deleteNote.isPending} />
                           </div>
                         </div>
                         <p className="mt-1 text-steel">{note.body}</p>

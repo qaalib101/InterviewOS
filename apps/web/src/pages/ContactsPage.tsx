@@ -122,7 +122,7 @@ export function ContactsPage() {
                 {contact.notes ? <p className="mt-2 text-sm text-steel">{contact.notes}</p> : null}
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button className="bg-white text-ink hover:bg-paper" onClick={() => editContact(contact)} type="button">Edit</button>
-                  <ConfirmDelete onConfirm={() => deleteContact.mutate(contact.id)} disabled={deleteContact.isPending} />
+                  <ConfirmDelete onConfirm={() => deleteContact.mutate(contact.id)} loading={deleteContact.isPending} />
                 </div>
               </article>
             ))}

@@ -148,7 +148,7 @@ export function ApplicationsPage() {
                 {application.concerns ? <p className="mt-2 text-sm text-rust">Concern: {application.concerns}</p> : null}
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button className="bg-white text-ink hover:bg-paper" onClick={() => editApplication(application)} type="button">Edit</button>
-                  <ConfirmDelete onConfirm={() => deleteApplication.mutate(application.id)} disabled={deleteApplication.isPending} />
+                  <ConfirmDelete onConfirm={() => deleteApplication.mutate(application.id)} loading={deleteApplication.isPending} />
                 </div>
               </article>
             ))}

@@ -5,6 +5,7 @@ import { apiDelete, apiGet, apiPatch, apiPost } from "../lib/api";
 import { formatDate, label } from "../lib/format";
 import { ConfirmDelete } from "../ui/ConfirmDelete";
 import { FormActions } from "../ui/FormActions";
+import { LoadingButton } from "../ui/LoadingButton";
 import { CrudLayout, Field, PageHeader, Panel } from "../ui/Primitives";
 import { useCrudToast } from "../ui/Toast";
 
@@ -140,6 +141,7 @@ export function FollowUpsPage() {
             followUps={openFollowUps}
             onAction={(id) => completeFollowUp.mutate(id)}
             onDelete={(id) => deleteFollowUp.mutate(id)}
+            deletePending={deleteFollowUp.isPending}
             onEdit={editFollowUp}
             title="Open Follow-Ups"
           />
@@ -150,6 +152,7 @@ export function FollowUpsPage() {
             followUps={completedFollowUps}
             onAction={(id) => reopenFollowUp.mutate(id)}
             onDelete={(id) => deleteFollowUp.mutate(id)}
+            deletePending={deleteFollowUp.isPending}
             onEdit={editFollowUp}
             title="Completed"
           />
@@ -217,6 +220,7 @@ export function FollowUpsPage() {
 function FollowUpList({
   actionLabel,
   actionPending,
+  deletePending,
   emptyLabel,
   followUps,
   onAction,
@@ -226,6 +230,7 @@ function FollowUpList({
 }: {
   actionLabel: string;
   actionPending?: boolean;
+  deletePending?: boolean;
   emptyLabel: string;
   followUps: FollowUp[];
   onAction: (id: string) => void;
@@ -251,10 +256,10 @@ function FollowUpList({
             {followUp.notes ? <p className="mt-2 text-sm">{followUp.notes}</p> : null}
             <div className="mt-4 flex flex-wrap gap-2">
               <button className="bg-white text-ink hover:bg-paper" onClick={() => onEdit(followUp)} type="button">Edit</button>
-              <button className="bg-white text-ink hover:bg-paper" disabled={actionPending} onClick={() => onAction(followUp.id)} type="button">
+              <LoadingButton className="bg-white text-ink hover:bg-paper" loading={actionPending} loadingLabel={`${actionLabel}...`} onClick={() => onAction(followUp.id)} type="button">
                 {actionLabel}
-              </button>
-              <ConfirmDelete onConfirm={() => onDelete(followUp.id)} />
+              </LoadingButton>
+              <ConfirmDelete onConfirm={() => onDelete(followUp.id)} loading={deletePending} />
             </div>
           </article>
         )) : <p className="text-sm text-steel">{emptyLabel}</p>}
