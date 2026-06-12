@@ -1,6 +1,6 @@
 import type { ImportAnalysisResult, ImportProposal } from "@interview-os/shared";
 import type { Prisma, PrismaClient } from "@prisma/client";
-import { logInfo } from "../shared/logger.js";
+import { logInfo, logWarn } from "../shared/logger.js";
 import { recordActivity } from "./activity.js";
 
 type Tx = Prisma.TransactionClient;
@@ -34,6 +34,13 @@ export async function commitImportSession(db: PrismaClient, userId: string, sess
   });
 }
 
+export class ImportCommitError extends Error {
+  constructor(message: string, public statusCode = 400, public context: Record<string, unknown> = {}) {
+    super(message);
+    this.name = "ImportCommitError";
+  }
+}
+
 async function commitProposal(tx: Tx, userId: string, proposal: ImportProposal, created: Map<string, string>) {
   if (proposal.entityType === "COMPANY") {
     const data = stripNulls({ name: stringForOperation(proposal, "name"), website: field(proposal, "website"), industry: field(proposal, "industry"), location: field(proposal, "location"), notes: field(proposal, "notes") });
@@ -58,7 +65,7 @@ async function commitProposal(tx: Tx, userId: string, proposal: ImportProposal, 
   }
 
   if (proposal.entityType === "INTERVIEW") {
-    const data = stripNulls({ applicationId: resolveId(proposal, created, "applicationId", "applicationProposalId", proposal.operation === "CREATE"), roundName: stringForOperation(proposal, "roundName"), roundNumber: numberForOperation(proposal, "roundNumber", 1), type: field(proposal, "type") ?? (proposal.operation === "CREATE" ? "OTHER" : null), format: field(proposal, "format") ?? (proposal.operation === "CREATE" ? "OTHER" : null), scheduledAt: dateForOperation(proposal, "scheduledAt"), durationMinutes: numberForOperation(proposal, "durationMinutes", 60), interviewers: field(proposal, "interviewers"), expectedTopics: field(proposal, "expectedTopics"), prepNotes: field(proposal, "prepNotes"), rawPostInterviewNotes: field(proposal, "rawPostInterviewNotes"), outcome: field(proposal, "outcome") ?? (proposal.operation === "CREATE" ? "SCHEDULED" : null) });
+    const data = stripNulls({ applicationId: resolveId(proposal, created, "applicationId", "applicationProposalId", proposal.operation === "CREATE"), roundName: stringForOperation(proposal, "roundName"), roundNumber: numberForOperation(proposal, "roundNumber", 1), type: field(proposal, "type") ?? (proposal.operation === "CREATE" ? "OTHER" : null), format: field(proposal, "format") ?? (proposal.operation === "CREATE" ? "OTHER" : null), scheduledAt: dateForOperation(proposal, "scheduledAt"), durationMinutes: numberForOperation(proposal, "durationMinutes", 60), interviewers: textField(proposal, "interviewers"), expectedTopics: textField(proposal, "expectedTopics"), prepNotes: field(proposal, "prepNotes"), rawPostInterviewNotes: field(proposal, "rawPostInterviewNotes"), outcome: field(proposal, "outcome") ?? (proposal.operation === "CREATE" ? "SCHEDULED" : null) });
     const record = proposal.operation === "UPDATE" ? await tx.interview.update({ where: { id: requiredExisting(proposal) }, data }) : await tx.interview.create({ data: { ...data, userId } as any });
     await recordActivity(tx as any, { userId, entityType: "INTERVIEW", entityId: record.id, eventType: proposal.operation === "UPDATE" ? "UPDATED" : "CREATED", metadata: { roundName: record.roundName } });
     return result(proposal, record.id, record.roundName, "/interviews");
@@ -84,7 +91,10 @@ function validateIncluded(proposals: ImportProposal[]) {
       const value = field(proposal, ref);
       const directIdKey = ref.replace("ProposalId", "Id");
       const directId = field(proposal, directIdKey);
-      if (typeof value === "string" && value && !directId && !ids.has(value)) throw new Error(`${proposal.entityType} references skipped proposal ${value}. Include that proposal or choose an existing record.`);
+      if (typeof value === "string" && value && !directId && !ids.has(value)) {
+        logWarn("import_commit_validation_failed", { proposalId: proposal.id, entityType: proposal.entityType, missingReference: value });
+        throw new ImportCommitError(`${proposal.entityType} references skipped proposal ${value}. Include that proposal or choose an existing record.`, 400, { proposalId: proposal.id, entityType: proposal.entityType });
+      }
     }
   }
 }
@@ -134,6 +144,13 @@ function numberField(proposal: ImportProposal, key: string) {
     const parsed = Number(value.replace(/[$,]/g, ""));
     return Number.isFinite(parsed) ? parsed : null;
   }
+  return null;
+}
+
+function textField(proposal: ImportProposal, key: string) {
+  const value = field(proposal, key);
+  if (Array.isArray(value)) return value.filter((item) => typeof item === "string" && item.trim()).join(", ");
+  if (typeof value === "string" && value.trim()) return value.trim();
   return null;
 }
 

@@ -6,7 +6,7 @@ import { prisma } from "../db/prisma.js";
 import { asyncHandler, getLocalUserId, validateBody } from "../shared/http.js";
 import { logError, logInfo, logWarn } from "../shared/logger.js";
 import { getAiProvider } from "./ai/providerFactory.js";
-import { commitImportSession } from "./imports.commit.js";
+import { commitImportSession, ImportCommitError } from "./imports.commit.js";
 import { enhanceImportAnalysis } from "./imports.enhance.js";
 import { applyLocalMatches } from "./imports.matching.js";
 import { normalizeImportAnalysis } from "./imports.normalize.js";
@@ -111,10 +111,26 @@ importsRouter.post(
     if (session.status === "COMMITTED") return res.status(409).json({ error: "Import session already committed" });
 
     const analysis = normalizeImportAnalysis(req.body.analysis ?? session.analysisJson);
-    logInfo("import_commit_started", { sessionId: id, includedCount: analysis.proposals.filter((proposal) => proposal.included && proposal.operation !== "SKIP").length });
-    const result = await commitImportSession(prisma, userId, id, analysis);
-    logInfo("import_commit_completed", { sessionId: id, recordCount: result.records.length });
-    res.json(result);
+    const includedCount = analysis.proposals.filter((proposal) => proposal.included && proposal.operation !== "SKIP").length;
+    if (includedCount === 0) return res.status(400).json({ error: "No included create or update proposals to commit." });
+
+    logInfo("import_commit_started", { sessionId: id, includedCount });
+    try {
+      const result = await commitImportSession(prisma, userId, id, analysis);
+      logInfo("import_commit_completed", { sessionId: id, recordCount: result.records.length });
+      res.json(result);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Import commit failed.";
+      const statusCode = error instanceof ImportCommitError ? error.statusCode : 422;
+      logError("import_commit_failed", {
+        sessionId: id,
+        includedCount,
+        statusCode,
+        message,
+        ...(error instanceof ImportCommitError ? error.context : {})
+      });
+      res.status(statusCode).json({ error: message });
+    }
   })
 );
 

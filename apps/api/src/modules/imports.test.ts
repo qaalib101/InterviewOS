@@ -86,6 +86,126 @@ describe("import routes", () => {
     expect(response.body.records[0].id).toBe("company-1");
     expect(prisma.$transaction).toHaveBeenCalled();
   });
+
+  it("rejects commit requests with no included actionable proposals", async () => {
+    const analysis = {
+      summary: "No changes",
+      proposals: [
+        {
+          id: "company-1",
+          entityType: "COMPANY",
+          operation: "SKIP",
+          included: false,
+          existingEntityId: "company-1",
+          confidence: 1,
+          proposedFields: {},
+          missingFields: [],
+          warnings: []
+        }
+      ]
+    };
+    vi.mocked(prisma.importSession.findFirst).mockResolvedValue({ id: "import-1", status: "ANALYZED", analysisJson: analysis } as any);
+
+    const response = await request(createApp()).post("/api/v1/imports/import-1/commit").send({ analysis });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe("No included create or update proposals to commit.");
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("commits an interview create linked directly to an existing application", async () => {
+    const analysis = {
+      summary: "Scheduled recruiter phone screen at Reddit with Leah Busse-Geagan.",
+      proposals: [
+        {
+          id: "app_1",
+          entityType: "APPLICATION",
+          operation: "SKIP",
+          included: false,
+          confidence: 0.82,
+          matchReason: "Matched existing active application by company because the import did not include a role title. No changes needed.",
+          existingEntityId: "app-1",
+          proposedFields: {},
+          missingFields: [],
+          warnings: []
+        },
+        {
+          id: "interview_1",
+          entityType: "INTERVIEW",
+          operation: "CREATE",
+          included: true,
+          confidence: 1,
+          matchReason: "Explicit interview schedule.",
+          existingEntityId: null,
+          proposedFields: {
+            roundName: "Recruiter Phone Screen",
+            roundNumber: 1,
+            type: "RECRUITER",
+            format: "PHONE",
+            scheduledAt: "2026-06-16T17:00:00Z",
+            durationMinutes: 30,
+            interviewers: ["Leah Busse-Geagan"],
+            expectedTopics: [],
+            prepNotes: "",
+            rawPostInterviewNotes: "",
+            outcome: "SCHEDULED",
+            applicationId: "app-1"
+          },
+          missingFields: [],
+          warnings: []
+        }
+      ]
+    };
+    vi.mocked(prisma.importSession.findFirst).mockResolvedValue({ id: "import-1", status: "ANALYZED", analysisJson: analysis } as any);
+    vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => callback(prisma));
+    vi.mocked(prisma.interview.create).mockResolvedValue({ id: "interview-1", roundName: "Recruiter Phone Screen" } as any);
+    vi.mocked(prisma.activityEvent.create).mockResolvedValue({ id: "event-1" } as any);
+
+    const response = await request(createApp()).post("/api/v1/imports/import-1/commit").send({ analysis });
+
+    expect(response.status).toBe(200);
+    expect(response.body.records).toHaveLength(1);
+    expect(prisma.interview.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        applicationId: "app-1",
+        roundName: "Recruiter Phone Screen",
+        type: "RECRUITER",
+        format: "PHONE",
+        interviewers: "Leah Busse-Geagan"
+      })
+    });
+  });
+
+  it("returns a structured error when import commit fails", async () => {
+    const analysis = {
+      summary: "Commit failure",
+      proposals: [
+        {
+          id: "interview-1",
+          entityType: "INTERVIEW",
+          operation: "CREATE",
+          included: true,
+          confidence: 0.9,
+          proposedFields: {
+            applicationId: "app-1",
+            roundName: "Interview",
+            scheduledAt: "2026-06-17T18:00:00Z"
+          },
+          missingFields: [],
+          warnings: []
+        }
+      ]
+    };
+    vi.mocked(prisma.importSession.findFirst).mockResolvedValue({ id: "import-1", status: "ANALYZED", analysisJson: analysis } as any);
+    vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => callback(prisma));
+    vi.mocked(prisma.interview.create).mockRejectedValue(new Error("Interview commit failed."));
+
+    const response = await request(createApp()).post("/api/v1/imports/import-1/commit").send({ analysis });
+
+    expect(response.status).toBe(422);
+    expect(response.body.error).toBe("Interview commit failed.");
+  });
+
   it("patches update proposals without requiring create-only fields", async () => {
     const analysis = {
       summary: "Update",

@@ -110,20 +110,25 @@ function normalizeProposedFields(entityType: string, value: unknown, proposalIds
 
 function normalizeRequiredFields<T extends { entityType: string; operation: string; included: boolean; proposedFields: Record<string, unknown>; missingFields: string[]; warnings: string[] }>(proposal: T) {
   if (proposal.operation !== "CREATE") return proposal;
-  const missing = new Set(proposal.missingFields);
-  const warnings = new Set(proposal.warnings);
+  const missing = new Set(proposal.missingFields.filter((fieldName) => !missingFieldIsSatisfied(fieldName, proposal.proposedFields)));
+  const requiredMissing: string[] = [];
+  let warnings = proposal.warnings;
 
-  for (const fieldName of requiredFields(proposal.entityType)) {
-    if (!hasField(proposal.proposedFields, fieldName)) missing.add(fieldName);
+  for (const group of requiredFieldGroups(proposal.entityType)) {
+    if (!group.some((fieldName) => hasField(proposal.proposedFields, fieldName))) {
+      const fieldName = group.join(" or ");
+      missing.add(fieldName);
+      requiredMissing.push(fieldName);
+    }
   }
 
-  if (proposal.included && missing.size > 0 && shouldExcludeWhenMissing(proposal.entityType)) {
+  if (proposal.included && requiredMissing.length > 0 && shouldExcludeWhenMissing(proposal.entityType)) {
     proposal.included = false;
-    warnings.add("Proposal was excluded because required fields are missing. Review and complete the fields before committing.");
+    warnings = [...warnings, "Proposal was excluded because required fields are missing. Review and complete the fields before committing."];
   }
 
   proposal.missingFields = [...missing];
-  proposal.warnings = [...warnings];
+  proposal.warnings = [...new Set(warnings)];
   return proposal;
 }
 
@@ -209,13 +214,13 @@ function normalizeKnownValue(value: string, values: Record<string, string>, fall
   return values[normalized] ?? fallback;
 }
 
-function requiredFields(entityType: string) {
-  if (entityType === "COMPANY") return ["name"];
-  if (entityType === "APPLICATION") return ["companyProposalId", "roleTitle"];
-  if (entityType === "CONTACT") return ["name"];
-  if (entityType === "INTERVIEW") return ["applicationProposalId", "roundName", "scheduledAt"];
-  if (entityType === "INTERVIEW_NOTE") return ["interviewProposalId", "body"];
-  if (entityType === "FOLLOW_UP") return ["title", "dueAt"];
+function requiredFieldGroups(entityType: string) {
+  if (entityType === "COMPANY") return [["name"]];
+  if (entityType === "APPLICATION") return [["companyProposalId", "companyId"], ["roleTitle"]];
+  if (entityType === "CONTACT") return [["name"]];
+  if (entityType === "INTERVIEW") return [["applicationProposalId", "applicationId"], ["roundName"], ["scheduledAt"]];
+  if (entityType === "INTERVIEW_NOTE") return [["interviewProposalId", "interviewId"], ["body"]];
+  if (entityType === "FOLLOW_UP") return [["title"], ["dueAt"]];
   return [];
 }
 
@@ -228,6 +233,23 @@ function hasField(fields: Record<string, unknown>, key: string) {
   if (value === null || value === undefined) return false;
   if (typeof value === "string") return value.trim().length > 0;
   return true;
+}
+
+function missingFieldIsSatisfied(fieldName: string, fields: Record<string, unknown>) {
+  const options = fieldName.split(/\s+or\s+/i).flatMap((value) => missingFieldAliases(value.trim())).filter(Boolean);
+  return options.length > 0 && options.some((option) => hasField(fields, option));
+}
+
+function missingFieldAliases(fieldName: string) {
+  if (fieldName === "companyProposalId") return ["companyProposalId", "companyId"];
+  if (fieldName === "companyId") return ["companyId", "companyProposalId"];
+  if (fieldName === "applicationProposalId") return ["applicationProposalId", "applicationId"];
+  if (fieldName === "applicationId") return ["applicationId", "applicationProposalId"];
+  if (fieldName === "contactProposalId") return ["contactProposalId", "contactId"];
+  if (fieldName === "contactId") return ["contactId", "contactProposalId"];
+  if (fieldName === "interviewProposalId") return ["interviewProposalId", "interviewId"];
+  if (fieldName === "interviewId") return ["interviewId", "interviewProposalId"];
+  return [fieldName];
 }
 
 const applicationStageMap: Record<string, string> = {
