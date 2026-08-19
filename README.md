@@ -1,45 +1,59 @@
 # Interview OS
 
-Interview OS is a personal operating system for managing job searches, recruiting processes, interview preparation, interview feedback, and follow-up activities.
+Interview OS is a local, single-user job-search operating system and CRM for managing recruiting processes, interview workflows, contacts, follow-ups, and activity history.
 
-It gives one place to track active opportunities, people involved in each process, interview rounds, notes, and the next actions required to keep a search moving.
-
-## Problem
-
-Job searches create scattered operational data: applications live in spreadsheets, contact notes live in email threads, interview prep lives in documents, and follow-ups depend on memory. Interview OS centralizes that work so each opportunity has context, history, and a clear next action.
+It is designed for one person running the app locally. The current implementation has no authentication layer, hosted multi-user deployment, team features, external sync, scraping, notifications, or browser extension.
 
 ## Product Overview
 
-Interview OS currently supports:
+Implemented capabilities:
 
-- Company records.
-- Job applications and existing processes already in progress.
-- Contacts linked to companies and applications.
-- Interview rounds linked to applications.
-- Interview notes and structured analysis storage.
-- Follow-ups linked to applications, contacts, and interviews.
-- Dashboard summary for active applications, upcoming interviews, open follow-ups, recent activity, and pipeline health.
-- AI-assisted text import for turning pasted recruiting text into reviewable draft records.
-- Edit/delete workflows for current records.
-- Seeded local data for development reset workflows.
+- Companies, applications, contacts, interviews, interview notes, and follow-ups.
+- Edit and delete workflows for the core CRM records.
+- Follow-up completion and reopening.
+- Activity history for write events.
+- Dashboard summaries for active applications, upcoming interviews, open follow-ups, recent activity, pipeline stage counts, follow-up priority counts, and interview outcome counts.
+- AI-assisted pasted-text import for recruiting content.
+- Seeded local data for destructive development reset workflows.
 
-Planned capabilities include:
+Partially implemented capabilities:
+
+- Interview notes, with schema support for structured interview analysis.
+- Import session traceability, including stored raw text, provider name, analysis JSON, status, errors, and commit timestamp.
+
+Planned capabilities:
 
 - Process analytics over time.
 - STAR stories.
 - Interview question bank.
 - Mock interview analysis.
 
+## AI Import
+
+The text import workflow is human-in-the-loop:
+
+1. Paste unstructured recruiting text such as a recruiter email, LinkedIn message, job description, interview notes, or follow-up text.
+2. Select an import source type and, optionally, existing application or interview context.
+3. The configured AI provider analyzes the text and returns structured proposals.
+4. The API normalizes proposals and applies local matching/deduplication against existing records.
+5. The user reviews proposals, edits proposed fields, and includes or excludes each proposal.
+6. The user explicitly commits the included proposals.
+7. Approved changes are written in a single database transaction.
+
+AI-generated proposals do not directly modify durable application data. Proposals are stored as drafts, reviewed by the user, and committed only after explicit approval.
+
+Supported proposal entity types are company, application, contact, interview, interview note, and follow-up. Providers are `mock`, `openai`, `deepseek`, `ollama`, and `disabled`. The mock provider is deterministic and works without external credentials. If an external or local provider is unavailable or misconfigured, AI import analysis is disabled while normal CRM functionality remains usable.
+
 ## Architecture
 
 ```text
-apps/web      React, TypeScript, Vite, Tailwind
-apps/api      Node.js, TypeScript, Express, Prisma
-packages/shared  Shared schemas, enums, and types
-database      Postgres
+apps/web          React, TypeScript, Vite, Tailwind, TanStack Query
+apps/api          Express, TypeScript, Prisma, Postgres
+packages/shared  Shared Zod schemas, enums, and TypeScript types
+database          Local Postgres via Docker Compose
 ```
 
-The API and web app share validation contracts through `packages/shared`. Prisma manages the Postgres schema and migrations. Local commands load the repo-root `.env` with override enabled so project values such as `DATABASE_URL` win over inherited shell variables.
+The API and web app share validation contracts through `packages/shared`. Prisma manages the Postgres schema and migrations. AI import is synchronous request/response; there are no background jobs.
 
 ## Setup
 
@@ -59,35 +73,34 @@ pnpm db:generate
 pnpm db:migrate
 ```
 
-Seeding is not part of normal setup or update workflows because the seed is destructive. If you intentionally want to replace local data with the built-in starter records, run:
+Seeding is not part of normal setup or update workflows because it is destructive. To replace local data with built-in starter records:
 
 ```bash
 pnpm db:seed:reset
 ```
 
-`pnpm db:seed:reset` deletes and recreates local CRM, interview, follow-up, and activity records for the seeded local user. Do not run it after entering personal data you want to keep.
+`pnpm db:seed:reset` deletes and recreates local CRM, interview, follow-up, activity, and import-session records for the local user. Do not run it after entering personal data you want to keep.
 
+## Configuration
 
-## AI Import Setup
-
-Text import works without external AI credentials when `AI_PROVIDER=mock`. The mock provider is deterministic and suitable for local use.
-
-Optional provider settings:
+Default local settings are shown in `.env.example`:
 
 ```bash
-LOCAL_USER_NAME=Qaalib
-AI_USER_ALIASES=Qaalib,Qaalib Farah
-AI_PROVIDER=mock # mock | openai | deepseek | ollama | disabled
-OPENAI_API_KEY=
-DEEPSEEK_API_KEY=
-DEEPSEEK_MODEL=deepseek-v4-flash
-OLLAMA_BASE_URL=
-OLLAMA_MODEL=
+DATABASE_URL="postgresql://interview_os:interview_os@localhost:5432/interview_os?schema=public"
+PORT=4000
+WEB_ORIGIN="http://localhost:5173"
+VITE_API_URL="http://localhost:4000"
+AI_PROVIDER="mock"
+OPENAI_API_KEY=""
+DEEPSEEK_API_KEY=""
+DEEPSEEK_MODEL="deepseek-v4-flash"
+OLLAMA_BASE_URL=""
+OLLAMA_MODEL=""
+LOCAL_USER_NAME="Qaalib"
+AI_USER_ALIASES="Qaalib,Qaalib Farah"
 ```
 
-If a configured provider is missing required settings, Interview OS disables analysis and shows setup guidance. Existing application features continue to work.
-
-The import prompt uses `LOCAL_USER_NAME` and `AI_USER_ALIASES` to avoid creating recruiter/contact records for you when pasted text references your name.
+`LOCAL_USER_NAME` and `AI_USER_ALIASES` help the import prompt distinguish the local user from recruiters, contacts, interviewers, and companies mentioned in pasted text.
 
 ## Usage
 
@@ -103,13 +116,13 @@ Start the web app:
 pnpm dev:web
 ```
 
-Open:
+Open the web app at:
 
 ```text
 http://localhost:5173
 ```
 
-The API runs on:
+The API runs at:
 
 ```text
 http://localhost:4000
@@ -118,8 +131,8 @@ http://localhost:4000
 ## Verification
 
 ```bash
-pnpm test
 pnpm lint
+pnpm test
 pnpm build
 ```
 
