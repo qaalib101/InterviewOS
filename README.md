@@ -15,11 +15,12 @@ Implemented capabilities:
 - Dashboard summaries for active applications, upcoming interviews, open follow-ups, recent activity, pipeline stage counts, follow-up priority counts, and interview outcome counts.
 - AI-assisted pasted-text import for recruiting content.
 - Seeded local data for destructive development reset workflows.
+- Import session persistence: raw text, provider, analysis JSON, status, errors, and commit timestamp.
 
 Partially implemented capabilities:
 
-- Interview notes, with schema support for structured interview analysis.
-- Import session traceability, including stored raw text, provider name, analysis JSON, status, errors, and commit timestamp.
+- Structured interview analysis: the schema supports it, but automatic interview analysis is not implemented.
+- Import sessions can be retrieved through the API; the web app has no session-history browser or workflow for reopening saved drafts.
 
 Planned capabilities:
 
@@ -42,7 +43,7 @@ The text import workflow is human-in-the-loop:
 
 AI-generated proposals do not directly modify durable application data. Proposals are stored as drafts, reviewed by the user, and committed only after explicit approval.
 
-Supported proposal entity types are company, application, contact, interview, interview note, and follow-up. Providers are `mock`, `openai`, `deepseek`, `ollama`, and `disabled`. The mock provider is deterministic and works without external credentials. If an external or local provider is unavailable or misconfigured, AI import analysis is disabled while normal CRM functionality remains usable.
+Supported proposal entity types are company, application, contact, interview, interview note, and follow-up. Providers are `mock`, `openai`, `deepseek`, `ollama`, and `disabled`. The mock provider uses local text heuristics and works without external credentials; some fallback names depend on the current date. Missing required provider configuration disables analysis. A configured provider can still fail at request time, in which case the import session is marked failed. Normal CRM functionality remains usable. Provider status reports configuration readiness, not a live connectivity check.
 
 ## Architecture
 
@@ -60,18 +61,22 @@ The API and web app share validation contracts through `packages/shared`. Prisma
 Prerequisites:
 
 - Node.js 22+
-- pnpm 9+
+- pnpm 9.15.0 (the version pinned in `package.json`)
 - Docker
 
-Install and initialize:
+Run commands from the repository root. Docker Compose starts PostgreSQL only; the API and web app run separately. PostgreSQL uses host port `5432`, so stop other services using that port or adjust the Compose mapping and `DATABASE_URL` together.
+
+For a new checkout, install and initialize:
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 cp .env.example .env
 docker compose up -d
 pnpm db:generate
 pnpm db:migrate
 ```
+
+Keep an existing `.env` when updating an installation. Wait for PostgreSQL to accept connections before running migrations.
 
 Seeding is not part of normal setup or update workflows because it is destructive. To replace local data with built-in starter records:
 
@@ -101,6 +106,18 @@ AI_USER_ALIASES="Qaalib,Qaalib Farah"
 ```
 
 `LOCAL_USER_NAME` and `AI_USER_ALIASES` help the import prompt distinguish the local user from recruiters, contacts, interviewers, and companies mentioned in pasted text.
+
+Choose `AI_PROVIDER` from the following values:
+
+| Provider | Required configuration | Behavior |
+| --- | --- | --- |
+| `mock` | None | Local heuristic proposals for development |
+| `openai` | `OPENAI_API_KEY` | Remote analysis; model is currently selected in `openAiProvider.ts` |
+| `deepseek` | `DEEPSEEK_API_KEY` | Remote analysis; model is configurable with `DEEPSEEK_MODEL` |
+| `ollama` | `OLLAMA_BASE_URL`, `OLLAMA_MODEL` | Analysis through an independently running Ollama instance |
+| `disabled` | None | CRM remains available; import analysis is unavailable |
+
+Remote providers receive the pasted text and resolved context. Import sessions retain the raw text and analysis in PostgreSQL. Keep local environment files and personal database exports out of version control.
 
 ## Usage
 
@@ -135,6 +152,27 @@ pnpm lint
 pnpm test
 pnpm build
 ```
+
+`pnpm lint` runs TypeScript checks; there is no separate ESLint configuration. API and shared-schema tests use Vitest. HTTP tests use Supertest with mocked database calls and require local socket access. The web package currently has no tests and uses `--passWithNoTests`; the suite does not verify real database rollback or concurrency.
+
+The compiled API start path is not yet a reliable deployment workflow: `@interview-os/shared` exports TypeScript source and does not emit a JavaScript package. Plain Node 22.17.1 cannot load that entry point. Use the development commands above until the package build/export boundary is fixed.
+
+## Reading the Code
+
+- [`packages/shared/src/imports.ts`](packages/shared/src/imports.ts): import contracts and proposal types.
+- [`apps/api/src/modules/imports.routes.ts`](apps/api/src/modules/imports.routes.ts): analyze, review-save, and commit orchestration.
+- [`imports.normalize.ts`](apps/api/src/modules/imports.normalize.ts), [`imports.matching.ts`](apps/api/src/modules/imports.matching.ts), and [`imports.enhance.ts`](apps/api/src/modules/imports.enhance.ts): normalization, existing-record matching, and context enrichment.
+- [`imports.commit.ts`](apps/api/src/modules/imports.commit.ts): transaction and proposal-reference resolution.
+- [`ImportNewPage.tsx`](apps/web/src/pages/ImportNewPage.tsx): the review and commit UI.
+- [`docs/DECISIONS.md`](docs/DECISIONS.md): architectural decisions and scope tradeoffs.
+
+## Current Limitations
+
+- This is a local, unauthenticated app, not a hosted multi-user service. Keep it on a trusted local machine.
+- AI analysis runs within the HTTP request, without a background queue or application-level provider timeout.
+- Import commits are transactional, but the session status check is outside the transaction; concurrent commit requests are not guaranteed to be idempotent.
+- Proposal envelopes are validated, but entity fields remain loosely typed. Matching and normalization use heuristics that require review.
+- Proposed fields are edited as JSON. Invalid edits show a warning while the last valid proposal remains in state; correct the JSON before committing. Recheck the editor after reanalysis.
 
 ## API Surface
 
